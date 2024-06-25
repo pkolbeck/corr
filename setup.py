@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 from distutils.core import setup, Extension
 import os, sys, glob
 
 __version__ = '0.7.3'
 
 katcp_prefix = '/'
-if os.environ.has_key('VIRTUAL_ENV'):
+if 'VIRTUAL_ENV' in os.environ:
     katcp_prefix = os.environ['VIRTUAL_ENV']
 
 setup(name = 'corr',
