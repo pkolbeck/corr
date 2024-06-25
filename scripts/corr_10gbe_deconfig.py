@@ -4,11 +4,13 @@ Author: Jason Manley
 Rev
 2010-07-28  JRM Port to corr-0.5.0
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -41,15 +43,15 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO,connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
-    print('\nKilling all 10GbE tgtap drivers...'),
+    print(('\nKilling all 10GbE tgtap drivers...'), end=' ')
     sys.stdout.flush()
     c.deconfig_roach_10gbe_ports()
-    print 'done.'
+    print('done.')
         
 
 except KeyboardInterrupt:

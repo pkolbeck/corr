@@ -8,5 +8,6 @@ Author: Jason Manley, Aaron Parsons
 Email: jason_manley at hotmail.com, aparsons at astron.berkeley.edu
 Revisions:
 """
-import cn_conf, katcp_wrapper, katcp_serial, log_handlers, corr_functions, bf_functions, corr_wb, corr_nb, corr_ddc, scroll, katadc, iadc, termcolors, rx, sim, snap, threaded
+from __future__ import absolute_import
+from . import cn_conf, katcp_wrapper, katcp_serial, log_handlers, corr_functions, bf_functions, corr_wb, corr_nb, corr_ddc, scroll, katadc, iadc, termcolors, rx, sim, snap, threaded
 

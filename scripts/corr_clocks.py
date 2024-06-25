@@ -7,12 +7,14 @@ Revisions:\n
 2010-07-28 PVP Mods as part of the move to ROACH F-Engines. Get F-engine or X-engine clocks or both.\n
 2009-07-01 JRM Initial revision.\n
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -37,7 +39,7 @@ if __name__ == '__main__':
     opts, args = p.parse_args(sys.argv[1:])
 
     if not (opts.fengine or opts.xengine):
-        print 'Either -f or -x (or both) must be supplied.'
+        print('Either -f or -x (or both) must be supplied.')
         exit()
 
     if args==[]:
@@ -47,12 +49,12 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO, connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
-    print('\nCalculating all clocks...'),
+    print(('\nCalculating all clocks...'), end=' ')
     sys.stdout.flush()
     xclks = []
     fclks = []
@@ -60,14 +62,14 @@ try:
         xclks = c.xeng_clks_get()
     if opts.fengine:
         fclks = c.feng_clks_get()
-    print 'done.'
+    print('done.')
 
     if opts.xengine:
         for s, server in enumerate(c.xsrvs):
-            print 'X:' + server + ': %i MHz'%xclks[s]
+            print('X:' + server + ': %i MHz'%xclks[s])
     if opts.fengine:
         for s, server in enumerate(c.fsrvs):
-            print 'F:' + server + ': %i MHz'%fclks[s]
+            print('F:' + server + ': %i MHz'%fclks[s])
 
     #lh.printMessages()
 

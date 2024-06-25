@@ -1,5 +1,8 @@
 """Module for performing various katadc functions from software"""
+from __future__ import absolute_import
+from __future__ import print_function
 import numpy,struct,time
+from six.moves import range
 
 WR = 0x0 << 0
 RD = 0x1 << 0
@@ -257,9 +260,9 @@ def rf_fe_get(fpga,katadc_n,input_sel):
  
 def gpio_header_get(fpga,katadc_n):
     for pol in range(2):
-        print "IIC GPIO expansion on ADC%i's %s input:"%(katadc_n,{0:'Q',1:'I'}[pol])
+        print("IIC GPIO expansion on ADC%i's %s input:"%(katadc_n,{0:'Q',1:'I'}[pol]))
         for i in range(0,8):
-            print '\t%x: %x'%(i,iic_read_register(fpga, 'iic_adc%i'%katadc_n, 0x20+pol, i))
+            print('\t%x: %x'%(i,iic_read_register(fpga, 'iic_adc%i'%katadc_n, 0x20+pol, i)))
 
 def gpio_header_set(fpga,katadc_n,input_sel):
     if input_sel == 'I': pol=0

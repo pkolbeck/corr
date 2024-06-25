@@ -13,11 +13,14 @@ Revisions:
 2009-11-30  JRM Added support for gbe_rx_err_cnt for rev322e onwards.
 2009-07-16  JRM Updated for x engine rev 322 with KATCP.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, logging
+from six.moves import range
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n', lh.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n', lh.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         corr.scroll.screen_teardown()
         c.disconnect_all()
@@ -53,10 +56,10 @@ if __name__ == '__main__':
     verbose = opts.verbose
 lh = corr.log_handlers.DebugLogHandler(35)
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_handler = lh, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
 
     # set up the curses scroll screen
     screenData = []

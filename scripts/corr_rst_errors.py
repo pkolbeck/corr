@@ -5,12 +5,14 @@ Author: Jason Manley
 Revs:
 2010-07-26: JRM Port for corr-0.5.0
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -43,15 +45,15 @@ if __name__ == '__main__':
 lh=corr.log_handlers.DebugLogHandler(100)
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO,connect=False,   log_handler=lh)
     c.connect()
-    print 'done'
+    print('done')
 
-    print('\nResetting error counters...'),
+    print(('\nResetting error counters...'), end=' ')
     sys.stdout.flush()
     c.rst_status_and_count()
-    print 'done.'
+    print('done.')
 
 except KeyboardInterrupt:
     exit_clean()

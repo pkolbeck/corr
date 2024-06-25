@@ -7,12 +7,14 @@ Revs:
 2010-07-28  JRM Port to corr-0.5.0
 2009-07-01  JRM First release
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -49,15 +51,15 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO, connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
-    print('\nDeprogramming all FPGAs...'),
+    print(('\nDeprogramming all FPGAs...'), end=' ')
     sys.stdout.flush()
     c.deprog_all()
-    print 'done.'
+    print('done.')
 
 #    lh.printMessages()
 

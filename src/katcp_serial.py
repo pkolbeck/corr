@@ -8,9 +8,13 @@
    @Revised 2009/12/01 to include print 10gbe core details.
    """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import struct, re, threading, socket, select, traceback, logging, sys, time, os
 
 from katcp import *
+import six
+from six.moves import range
 log = logging.getLogger("katcp")
 
 
@@ -64,8 +68,8 @@ class SerialClient(CallbackClient):
             return None
 
     def _nb_pop_oldest_request(self):
-        req = self._nb_requests[self._nb_requests.keys()[0]]
-        for k, v in self._nb_requests.iteritems():
+        req = self._nb_requests[list(self._nb_requests.keys())[0]]
+        for k, v in six.iteritems(self._nb_requests):
             if v.time_tx < req.time_tx:
                 req = v
         return self._nb_pop_request_by_id(req.request_id)
@@ -75,7 +79,7 @@ class SerialClient(CallbackClient):
         return req.reply, req.informs
 
     def _nb_add_request(self, request_name, request_id, inform_cb, reply_cb):
-        if self._nb_requests.has_key(request_id):
+        if request_id in self._nb_requests:
             raise RuntimeError('Trying to add request with id(%s) but it already exists.' % request_id)
         self._nb_requests[request_id] = FpgaAsyncRequest(self.host, request_name, request_id, inform_cb, reply_cb)
 
@@ -87,7 +91,7 @@ class SerialClient(CallbackClient):
         """The callback for request replies. Check that the ID exists and call that request's got_reply function.
            """
         request_id = ''.join(userdata)
-        if not self._nb_requests.has_key(request_id):
+        if request_id not in self._nb_requests:
             raise RuntimeError('Recieved reply for request_id(%s), but no such stored request.' % request_id)
         self._nb_requests[request_id].got_reply(msg.copy())
 
@@ -95,7 +99,7 @@ class SerialClient(CallbackClient):
         """The callback for request informs. Check that the ID exists and call that request's got_inform function.
            """
         request_id = ''.join(userdata)
-        if not self._nb_requests.has_key(request_id):
+        if request_id not in self._nb_requests:
             raise RuntimeError('Recieved inform for request_id(%s), but no such stored request.' % request_id)
         self._nb_requests[request_id].got_inform(msg.copy())
 
@@ -110,7 +114,7 @@ class SerialClient(CallbackClient):
         if len(self._nb_requests) == self._nb_max_requests:
             oldreq = self._nb_pop_oldest_request()
             self._logger.info("Request list full, removing oldest one(%s,%s)." % (oldreq.request, oldreq.request_id))
-            print "Request list full, removing oldest one(%s,%s)." % (oldreq.request, oldreq.request_id)
+            print("Request list full, removing oldest one(%s,%s)." % (oldreq.request, oldreq.request_id))
         request_id = self._nb_get_next_request_id()
         self.request(msg = Message.request(request, *args), reply_cb = self._nb_replycb, inform_cb = self._nb_informcb, user_data = request_id)
         self._nb_add_request(request, request_id, inform_cb, reply_cb)

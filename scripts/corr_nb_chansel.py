@@ -9,11 +9,13 @@ Revisions:
 2011-09-02  PVP Initial version.
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, sys, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',lh.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',lh.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -45,17 +47,17 @@ if __name__ == '__main__':
 
 lh = corr.log_handlers.DebugLogHandler(100)
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.INFO, connect = False, log_handler = lh)
     if not c.is_narrowband():
-        print 'Can only be run on narrowband correlators.'
+        print('Can only be run on narrowband correlators.')
         exit_fail()
     c.connect()
-    print 'done'
+    print('done')
 
     chan_cf, chan, chan_diff = corr.corr_nb.channel_select(c, freq_hz = opts.freq_hz, specific_chan = opts.channel_sel)
 
-    print 'Coarse channel %i chosen, with center frequency %.4fMhz, distance from cf %ihz' % (chan, chan_cf / 1000000.0, chan_diff)
+    print('Coarse channel %i chosen, with center frequency %.4fMhz, distance from cf %ihz' % (chan, chan_cf / 1000000.0, chan_diff))
 
     # print the setup on the fengines
     #rv = corr.corr_functions.read_masked_register(c.ffpgas, corr.corr_nb.register_fengine_coarse_control)

@@ -16,6 +16,8 @@ Revs:
 2010-11-26  JRM Added command-line option for autoscaling.
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import numpy as np
 import spead64_48 as spead
 import logging
@@ -58,13 +60,13 @@ if __name__ == '__main__':
     acc_scale = opts.acc_scale
     verbose = opts.verbose
 
-print 'Parsing config file...',
+print('Parsing config file...', end=' ')
 sys.stdout.flush()
 c = corr.corr_functions.Correlator(config_file=config_file,
                                    log_level=(logging.DEBUG if verbose else logging.WARN),
                                    connect=False)
 config = c.config
-print 'done.'
+print('done.')
 
 data_port = config['rx_udp_port']
 sd_ip = config['sig_disp_ip_str']
@@ -73,10 +75,10 @@ mode = config['xeng_format']
 
 filename = str(time.time()) + '.corr.h5'
 
-print 'Initalising SPEAD transports for %s data...' % mode
-print 'Data reception on port', data_port
-print 'Sending Signal Display data to %s:%i.' % (sd_ip, sd_port)
-print 'Storing to file %s' % filename
+print('Initalising SPEAD transports for %s data...' % mode)
+print('Data reception on port', data_port)
+print('Sending Signal Display data to %s:%i.' % (sd_ip, sd_port))
+print('Storing to file %s' % filename)
 
 crx = corr.rx.CorrRx(
     mode=mode,
@@ -92,7 +94,7 @@ try:
     crx.start()
     while crx.isAlive():
         time.sleep(0.1)
-    print 'RX process ended.'
+    print('RX process ended.')
     crx.join()
 except KeyboardInterrupt:
-    print 'Stopping...'
+    print('Stopping...')

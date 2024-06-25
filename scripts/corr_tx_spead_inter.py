@@ -29,7 +29,10 @@ historic version info:
 2007-08-29  JRM Changed some endian-ness handling for packet decoding
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import time, os, socket, struct, sys
+from six.moves import range
 
 class spead_packet:
     """Pack and unpack the binary correlation data in a SPEAD packet,
@@ -138,7 +141,7 @@ class CorrTX:
             xeng_file.seek(2)
             self.xeng.append(struct.unpack('>H',xeng_file.read(2))[0])
             xeng_file.close()
-            print ('Ready to send output data from Xeng %i to IP %s on port %i.' %(self.xeng[x],ip,port))
+            print(('Ready to send output data from Xeng %i to IP %s on port %i.' %(self.xeng[x],ip,port)))
     
 
         self.timestamp_rnd=timestamp_rnd
@@ -190,7 +193,7 @@ class CorrTX:
         self.snap_en[xeng].flush()
         
     def empty_buffers(self):
-        print 'Flushing buffers...'
+        print('Flushing buffers...')
         complete=[]
         total_xeng_vectors=[]
 
@@ -220,7 +223,7 @@ class CorrTX:
                 self.snap_get_new(xnum)
 
         for xnum in range(self.x_per_fpga):
-            print '\t: Flushed %i vectors for X engine %i. %i/%i complete.'%(total_xeng_vectors[xnum], self.xeng[xnum], sum(complete),self.x_per_fpga)
+            print('\t: Flushed %i vectors for X engine %i. %i/%i complete.'%(total_xeng_vectors[xnum], self.xeng[xnum], sum(complete),self.x_per_fpga))
 
 
     def _tx(self):
@@ -280,7 +283,7 @@ class CorrTX:
 
             #Now that we have collected all this integration's data, send the packets:
             for xnum in range(self.x_per_fpga):
-                print '[%6i] Grabbed %i vectors for X engine %i with timestamp %i (diff ~%4.2fs).'%(n_integrations,int_xeng_vectors[xnum], self.xeng[xnum], timestamp[xnum],realtime_diff[xnum])
+                print('[%6i] Grabbed %i vectors for X engine %i with timestamp %i (diff ~%4.2fs).'%(n_integrations,int_xeng_vectors[xnum], self.xeng[xnum], timestamp[xnum],realtime_diff[xnum]))
                 data[xnum] = ''.join(data[xnum])
 
                 #n_bls=16*17/2
@@ -296,7 +299,7 @@ class CorrTX:
                         offset=cnt*self.payload_len,
                         heap_len=len(data[xnum]), 
                         data=data[xnum][cnt*self.payload_len:(cnt+1)*self.payload_len]
-                        ) != target_pkt_size: print 'TX fail!' 
+                        ) != target_pkt_size: print('TX fail!') 
                     #time.sleep(0.000001)
                     #print '.',
                 #print ''
@@ -325,7 +328,7 @@ if __name__ == '__main__':
         help='Round-off the timestamp to the nearest given value. Default is 1024*1024.')
     opts, args = p.parse_args(sys.argv[1:])
     if len(args) < 1: 
-        print 'Please specify PID of Xengine BORPH process.'
+        print('Please specify PID of Xengine BORPH process.')
         sys.exit()
     pid =  int(args[0])
     c = CorrTX(pid, ip=opts.udp_ip, x_per_fpga=opts.x_per_fpga, port=opts.udp_port, payload_len=opts.payload_len, timestamp_rnd=opts.timestamp_rounding, verbose=opts.verbose)

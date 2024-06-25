@@ -4,6 +4,8 @@
 Grabs the contents of the 10GbE output snap blocks for analysis of SPEAD packets. THIS SCRIPT IS INCOMPLETE.
 
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging
 
 #brams
@@ -22,8 +24,8 @@ valid_bit = 0
 pkt_ip_mask = (2**(ip_addr_bit_width+ip_addr_bit_offset)) -(2**ip_addr_bit_offset)
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
 
     try:
         c.disconnect_all()
@@ -88,10 +90,10 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:        
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO, connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
     report = dict()
     binary_point = c.config['feng_fix_pnt_pos']
@@ -101,25 +103,25 @@ try:
     n_chans = c.config['n_chans']
     n_ants_per_ibob=c.config['n_ants_per_xaui']
 
-    print '------------------------'
-    print 'Grabbing snap data...',
+    print('------------------------')
+    print('Grabbing snap data...', end=' ')
     servers = c.xsrvs
     fpgas=c.xfpgas
     bram_dmp=bram_dmp=corr.snap.snapshots_get(fpgas=c.xfpgas,dev_names=dev_name,man_trig=man_trig,man_valid=man_valid,wait_period=2)
-    print 'done'
+    print('done')
 
 #print 'BRAM DUMPS:'
 #print bram_dmp
 
-    print 'Unpacking bram contents...',
+    print('Unpacking bram contents...', end=' ')
     sys.stdout.flush()
     bram_oob=dict()
     for f,server in enumerate(servers):
         if len(bram_dmp[brams[2]][f])<=4:
-            print '\n   No data for engine %s.'%server
+            print('\n   No data for engine %s.'%server)
             bram_oob[f]={}
         else:
-            print '\n   Got %i values from %s.'%(len(bram_dmp[brams[2]][f])/4,server)
+            print('\n   Got %i values from %s.'%(len(bram_dmp[brams[2]][f])/4,server))
             bram_oob[f]={'raw':struct.unpack('>%iL'%(len(bram_dmp[brams[2]][f])/4),bram_dmp[brams[2]][f])}
             bram_oob[f].update({'eof':[bool(i & (2**eof_bit)) for i in bram_oob[f]['raw']]})
             bram_oob[f].update({'valid':[bool(i & (2**valid_bit)) for i in bram_oob[f]['raw']]})
@@ -129,9 +131,9 @@ try:
             bram_oob[f].update({'tx_over':[bool(i & (2**tx_over_bit)) for i in bram_oob[f]['raw']]})
             bram_oob[f].update({'ip_addr':[(i&pkt_ip_mask)>>ip_addr_bit_offset for i in bram_oob[f]['raw']]})
             #print '\n\nFPGA %i, bramoob:'%f,bram_oob
-    print 'Done unpacking.'
+    print('Done unpacking.')
 
-    print 'Analysing packets:'
+    print('Analysing packets:')
     for f,fpga in enumerate(fpgas):
         report[f]=dict()
         report[f]['pkt_total']=0
@@ -146,19 +148,19 @@ try:
         while i < (len(bram_dmp[brams[1]][f])/4):  #"i" is 64 bit index
             #if verbose==True:
             pkt_64bit = struct.unpack('>Q',bram_dmp['bram_msb'][f][(4*i):(4*i)+4]+bram_dmp['bram_lsb'][f][(4*i):(4*i)+4])[0]
-            print '[%s] IDX: %6i'%(servers[f],i),
-            print '[%s]'%ip2str(bram_oob[f]['ip_addr'][i]),
-            if bram_oob[f]['valid'][i]: print '[valid]',
-            if bram_oob[f]['link'][i]: print '[link]',
-            if bram_oob[f]['tx_led'][i]: print '[tx_led]',
-            if bram_oob[f]['tx_afull'][i]: print '[TX buffer almost full!]',
-            if bram_oob[f]['tx_over'][i]: print '[TX buffer OVERFLOW!]',
+            print('[%s] IDX: %6i'%(servers[f],i), end=' ')
+            print('[%s]'%ip2str(bram_oob[f]['ip_addr'][i]), end=' ')
+            if bram_oob[f]['valid'][i]: print('[valid]', end=' ')
+            if bram_oob[f]['link'][i]: print('[link]', end=' ')
+            if bram_oob[f]['tx_led'][i]: print('[tx_led]', end=' ')
+            if bram_oob[f]['tx_afull'][i]: print('[TX buffer almost full!]', end=' ')
+            if bram_oob[f]['tx_over'][i]: print('[TX buffer OVERFLOW!]', end=' ')
 
             if bram_oob[f]['eof'][i]: 
                 #next piece should be SPEAD header:
                 item_cnt = -1
-                print '%016x'%(pkt_64bit),
-                print '[EOF]'
+                print('%016x'%(pkt_64bit), end=' ')
+                print('[EOF]')
 
             elif item_cnt == -1:
                 #This might be a SPEAD header
@@ -168,36 +170,36 @@ try:
                 flav2 = (pkt_64bit &(((2**8)-1)<<32))>>32
                 n_items = (pkt_64bit &(((2**16)-1)))
                 if magic == 0x53: 
-                    print 'Looks like SPEAD%i-%i, version %i with magic 0x%2x and %i items.'%((flav1+flav2)*8,(flav2*8),ver,magic,n_items)
+                    print('Looks like SPEAD%i-%i, version %i with magic 0x%2x and %i items.'%((flav1+flav2)*8,(flav2*8),ver,magic,n_items))
                     if flav1 != (c.config['spead_flavour'][0] - c.config['spead_flavour'][1])/8 or flav2 != c.config['spead_flavour'][1]/8 : \
-                        print 'Warning: SPEAD flavour is not %i-%i.'%(c.config['spead_flavour'][0],c.config['spead_flavour'][1])
-                    if n_items != 6: print 'Warning: n_items !=6.'
+                        print('Warning: SPEAD flavour is not %i-%i.'%(c.config['spead_flavour'][0],c.config['spead_flavour'][1]))
+                    if n_items != 6: print('Warning: n_items !=6.')
                     item_cnt=0
                 else:
-                    print 'Not a SPEAD packet, magic number is %i.'%magic
+                    print('Not a SPEAD packet, magic number is %i.'%magic)
                     item_cnt=9999
 
             elif item_cnt < n_items and item_cnt >=0:
                 item=unpack_item(flav1,flav2,pkt_64bit)
 
-                if item['addr_mode'] == 0: print '[imm addr]',
-                elif item['addr_mode'] == 1: print '[abs addr]',    
-                else: print '[UNPACK LOGIC ERR!]'
+                if item['addr_mode'] == 0: print('[imm addr]', end=' ')
+                elif item['addr_mode'] == 1: print('[abs addr]', end=' ')    
+                else: print('[UNPACK LOGIC ERR!]')
 
-                if item['item_id'] == 1:    print 'Heap PCNT:   %12i'%item['data_addr']
-                if item['item_id'] == 2:    print 'Heap Size:   %12i'%item['data_addr']
-                if item['item_id'] == 3:    print 'Heap Offset: %12i'%item['data_addr']
-                if item['item_id'] == 4:    print 'Payload len: %12i'%item['data_addr']
-                if item['item_id'] == 5632: print 'Timestamp:   %12i'%item['data_addr']
-                if item['item_id'] == 6144: print 'Data addr:   %12i'%item['data_addr']
+                if item['item_id'] == 1:    print('Heap PCNT:   %12i'%item['data_addr'])
+                if item['item_id'] == 2:    print('Heap Size:   %12i'%item['data_addr'])
+                if item['item_id'] == 3:    print('Heap Offset: %12i'%item['data_addr'])
+                if item['item_id'] == 4:    print('Payload len: %12i'%item['data_addr'])
+                if item['item_id'] == 5632: print('Timestamp:   %12i'%item['data_addr'])
+                if item['item_id'] == 6144: print('Data addr:   %12i'%item['data_addr'])
                 item_cnt += 1
 
             else:
-                print '%016x'%(pkt_64bit)
+                print('%016x'%(pkt_64bit))
 
             i +=1
 
-    print 'Done with all servers.'
+    print('Done with all servers.')
 
 
 

@@ -9,6 +9,8 @@ Date: 2011-09-07
 Revisions:
 2011-09-07  PVP Initial.
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging, pylab, matplotlib
 
 pol_list = []
@@ -16,8 +18,8 @@ report = []
 accum_limit = -1
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n', lh.printMessages() 
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n', lh.printMessages()) 
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -60,36 +62,36 @@ def parseAntenna(antArg):
     return ants
 
 def get_data(pol):
-    print 'Integrating data %i from %s:' % (pol['num_accs'], pol['ant_str'])
-    print '\tGrabbing data off snap blocks...',
+    print('Integrating data %i from %s:' % (pol['num_accs'], pol['ant_str']))
+    print('\tGrabbing data off snap blocks...', end=' ')
     if c.is_wideband():
         unpacked_vals = get_data_wb(pol)
     elif c.is_narrowband():
         if opts.coarse:
-            print 'coarse FFT',
+            print('coarse FFT', end=' ')
             unpacked_vals = get_data_nb_coarse_fft(pol)
         elif opts.softfft > -1:
-            print 'soft fine FFT on coarse output',
+            print('soft fine FFT on coarse output', end=' ')
             unpacked_vals = get_data_nb_soft_fine_fft_coarse(pol, selectedchan = opts.softfft)
         elif opts.softfft2 > -1:
-            print 'soft fine FFT on coarse output - new method',
+            print('soft fine FFT on coarse output - new method', end=' ')
             unpacked_vals = get_data_nb_soft_fine_fft2_coarse(pol, selectedchan = opts.softfft2)
         elif opts.quant:
-            print 'quantiser',
+            print('quantiser', end=' ')
             unpacked_vals = get_data_nb_quant(pol)
         elif opts.sfft_buf:
-            print 'soft FFT on buffer output',
+            print('soft FFT on buffer output', end=' ')
             unpacked_vals = get_data_nb_soft_fft_buffer_pfb(pol, pfb = False)
         elif opts.sfft_pfb:
-            print 'soft FFT on pfb output',
+            print('soft FFT on pfb output', end=' ')
             unpacked_vals = get_data_nb_soft_fft_buffer_pfb(pol, pfb = True)
         else:
-            print 'fine FFT',
+            print('fine FFT', end=' ')
             unpacked_vals = get_data_nb_fine_fft(pol)
     else:
         raise RuntimeError('Mode not supported.')
-    print 'done.'
-    print '\tAccumulating chans...', 
+    print('done.')
+    print('\tAccumulating chans...', end=' ') 
     for a in exclusion_list:
         unpacked_vals[0][a] = 0
     if len(pol['last_spectrum']) == 1:
@@ -98,7 +100,7 @@ def get_data(pol):
     pol['last_spectrum'] = numpy.abs(unpacked_vals[0])
     pol['accumulations'] = numpy.sum([pol['accumulations'], numpy.sum(numpy.abs(unpacked_vals), axis = 0)], axis = 0)
     pol['num_accs'] += unpacked_vals.shape[0]
-    print 'done.'
+    print('done.')
     return
 
 def get_data_wb(pol):
@@ -123,15 +125,15 @@ def get_data_nb_soft_fine_fft_coarse(pol, selectedchan = -1):
     snapdata = corr.corr_nb.get_snap_coarse_fft(c, fpgas = [pol['fpga']], pol = pol['pol'], setup_snap = True)[0]
     requiredlen = pol['coarse_chans'] * fftlength
     if len(snapdata) >= requiredlen:
-        print 'Got %i/%i values required.' % (len(snapdata), requiredlen)
+        print('Got %i/%i values required.' % (len(snapdata), requiredlen))
     else:
-        print 'Need to get %i values: ' % requiredlen,
+        print('Need to get %i values: ' % requiredlen, end=' ')
         while(len(snapdata) < requiredlen):
             tempdata = corr.corr_nb.get_snap_coarse_fft(c, fpgas = [pol['fpga']], pol = pol['pol'], setup_snap = False)[0]
             snapdata.extend(tempdata)
-            print '%i/%i, ' % (len(snapdata), requiredlen),
+            print('%i/%i, ' % (len(snapdata), requiredlen), end=' ')
             sys.stdout.flush()
-        print ''
+        print('')
     snapdata = numpy.array(snapdata)
     snapdata.shape = (fftlength, pol['coarse_chans'])
     # now do the FFT on a specific channel?
@@ -152,7 +154,7 @@ def get_data_nb_soft_fine_fft2_coarse(pol, selectedchan = -1):
     fftlength = 1024
     pol['plot_chans'] = fftlength
     snapdata = corr.corr_nb.get_snap_coarse_channel(c, fpgas = [pol['fpga']], pol = pol['pol'], channel = selectedchan, setup_snap = True)[0]
-    print 'Got %i/%i values required.' % (len(snapdata), fftlength)
+    print('Got %i/%i values required.' % (len(snapdata), fftlength))
     fftd = numpy.fft.fft(snapdata, n = fftlength).tolist()
     fftlen = len(fftd)
     swapped = fftd[fftlen/2:]
@@ -166,7 +168,7 @@ def get_data_nb_fine_fft(pol):
     unpacked_vals = []
     offset = 0
     while len(unpacked_vals) < pol['fine_chans']:
-        print '(%i/%i)' % (len(unpacked_vals), pol['fine_chans']),
+        print('(%i/%i)' % (len(unpacked_vals), pol['fine_chans']), end=' ')
         sys.stdout.flush()
         temp = corr.corr_nb.get_snap_fine_fft(c, fpgas = [pol['fpga']], offset = offset, setup_snap = (offset == 0))
         temp = temp[0][pol['pol']]
@@ -205,15 +207,15 @@ def get_data_nb_soft_fft_buffer_pfb(pol, pfb = False):
     snapdata = corr.corr_nb.get_snap_buffer_pfb(c, fpgas = [pol['fpga']], pol = pol['pol'], setup_snap = True, pfb = pfb)[0]
     requiredlen = fftlength
     if len(snapdata) >= requiredlen:
-        print 'Got %i/%i values required.' % (len(snapdata), requiredlen)
+        print('Got %i/%i values required.' % (len(snapdata), requiredlen))
     else:
-        print 'Need to get %i values: ' % requiredlen,
+        print('Need to get %i values: ' % requiredlen, end=' ')
         while(len(snapdata) < requiredlen):
             tempdata = corr.corr_nb.get_snap_buffer_pfb(c, fpgas = [pol['fpga']], pol = pol['pol'], setup_snap = False, pfb = pfb)[0]
             snapdata.extend(tempdata)
-            print '%i/%i, ' % (len(snapdata), requiredlen),
+            print('%i/%i, ' % (len(snapdata), requiredlen), end=' ')
             sys.stdout.flush()
-        print ''
+        print('')
     snapdata = numpy.array(snapdata)
     #snapdata.shape = (fftlength, pol['coarse_chans'])
     # now do the FFT on a specific channel?
@@ -273,14 +275,14 @@ lh = corr.log_handlers.DebugLogHandler(35)
 if opts.ant != None:
     ant_strs = parseAntenna(opts.ant)
 else:
-    print 'No antenna given for which to plot data.'
+    print('No antenna given for which to plot data.')
     exit_fail()
 
 try:
-    print 'Connecting with config %s...' % config_file,
+    print('Connecting with config %s...' % config_file, end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
 
     # set up the figure with a subplot for each polarisation to be plotted
     fig = matplotlib.pyplot.figure()
@@ -300,7 +302,7 @@ try:
 
     # start the process    
     fig.canvas.manager.window.after(opts.update_rate, draw_callback)
-    print 'Plot started.'
+    print('Plot started.')
     matplotlib.pyplot.show()
 
 except KeyboardInterrupt:

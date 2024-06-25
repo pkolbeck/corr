@@ -5,7 +5,9 @@ Setup and unique functionality for the narrow-band correlator modes. Here narrow
 Revisions:
 2011-07-07  PVP  Initial revision.
 """
+from __future__ import absolute_import
 import numpy, struct, construct, corr_functions, snap
+from six.moves import range
 
 def bin2fp(bits, m = 8, e = 7):
     if m > 32:

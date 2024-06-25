@@ -3,12 +3,14 @@
 Rev:
 2010-11-26  JRM Resync VACC after arm.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -39,26 +41,26 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO, connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
-    print ''' Syncing the F engines...''',
+    print(''' Syncing the F engines...''', end=' ')
     sys.stdout.flush()
     trig_time = c.arm()
-    print 'Armed. Expect trigg at %s local (%s UTC).' % (time.strftime('%H:%M:%S', time.localtime(trig_time)), time.strftime('%H:%M:%S', time.gmtime(trig_time))),
-    print 'SPEAD packet sent.'
+    print('Armed. Expect trigg at %s local (%s UTC).' % (time.strftime('%H:%M:%S', time.localtime(trig_time)), time.strftime('%H:%M:%S', time.gmtime(trig_time))), end=' ')
+    print('SPEAD packet sent.')
 
-    print('Resyncing VACCs...'),
+    print(('Resyncing VACCs...'), end=' ')
     sys.stdout.flush()
     c.vacc_sync()
-    print 'done.'
+    print('done.')
 
-    print('Resetting error counters...'),
+    print(('Resetting error counters...'), end=' ')
     sys.stdout.flush()
     c.rst_status_and_count()
-    print 'done.'
+    print('done.')
 
 except KeyboardInterrupt:
     exit_clean()

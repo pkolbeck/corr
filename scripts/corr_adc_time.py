@@ -19,7 +19,10 @@ Revisions:
 #TODO: Add duty-cycle measurement support.
 #TODO: Add trigger count support.
 
+from __future__ import absolute_import
+from __future__ import print_function
 import matplotlib
+from six.moves import range
 matplotlib.use('TkAgg')
 import time, corr, numpy, struct, sys, logging, pylab
 
@@ -29,7 +32,7 @@ snapName = 'snap_adc'
 bramName = 'bram'
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     try:
         f.flush()
         if filename != None:
@@ -44,7 +47,7 @@ def exit_fail():
 
 def exit_clean():
     try:
-        print "Closing file."
+        print("Closing file.")
         f.flush()
         f.close()
         r.fpga.stop()
@@ -58,7 +61,7 @@ def drawDataCallback(n_samples,indep,trig_level):
     filewrite(unpackedData,timestamp,status)
 
     subplots[0].cla()
-    subplots[0].set_xticks(range(-130, 131, 20))
+    subplots[0].set_xticks(list(range(-130, 131, 20)))
     histData, bins, patches = subplots[0].hist(unpackedData, bins = 256, range = (-128,128))
     if status['adc_overrange'] or status['adc_disabled']:
         subplots[0].set_title('Histogram as at %s'%(time.ctime(timestamp)),bbox=dict(facecolor='red', alpha=0.5))
@@ -76,7 +79,7 @@ def drawDataCallback(n_samples,indep,trig_level):
     trigs = numpy.ma.flatnotmasked_edges(numpy.ma.masked_less_equal(abs_levs,(trig_level-1)))
     #print trigs
     if (trigs == None or trigs[0] ==0) and trig_level>0 and (max_adc)<trig_level: 
-        print('ERROR: we asked for a trigger level of %i and the hardware reported success, but the maximum level in the returned data was only %i. Got %i samples.'%(trig_level,max_adc,len(calData)))
+        print(('ERROR: we asked for a trigger level of %i and the hardware reported success, but the maximum level in the returned data was only %i. Got %i samples.'%(trig_level,max_adc,len(calData))))
 
     #if there was no triggering:
     if trigs==None:
@@ -143,16 +146,16 @@ def getUnpackedData(trig_level=-1):
     stat=c.feng_status_get(opts.antAndPol)
     stat.update(c.adc_amplitudes_get(antpols=[ant_str])[ant_str]) 
 
-    print '%s: input level: %5.2f dBm (%5.2f dBm into ADC).'%(time.ctime(timestamp),stat['input_rms_dbm'],stat['adc_rms_dbm']),
-    if stat['adc_disabled']: print 'ADC selfprotect due to overrange!',
-    if stat['adc_overrange']: print 'ADC is clipping!',
-    print ''
+    print('%s: input level: %5.2f dBm (%5.2f dBm into ADC).'%(time.ctime(timestamp),stat['input_rms_dbm'],stat['adc_rms_dbm']), end=' ')
+    if stat['adc_disabled']: print('ADC selfprotect due to overrange!', end=' ')
+    if stat['adc_overrange']: print('ADC is clipping!', end=' ')
+    print('')
     return unpackedBytes, timestamp, stat
 
 def filewrite(adc_data,timestamp,status):
     if filename != None:
         cnt=f['raw_dumps'].shape[0]-1
-        print '  Storing entry %i...'%cnt,
+        print('  Storing entry %i...'%cnt, end=' ')
         sys.stdout.flush()
         f['raw_dumps'][cnt] = adc_data 
         f['timestamp'][cnt] = timestamp
@@ -162,7 +165,7 @@ def filewrite(adc_data,timestamp,status):
         f['adc_level'][cnt] = status['adc_rms_dbm']
         for name in ['raw_dumps','timestamp','adc_overrange','fft_overrange','adc_shutdown','adc_level']:
             f[name].resize(cnt+2, axis=0)
-        print 'Appended to file.'
+        print('Appended to file.')
 
 
 if __name__ == '__main__':
@@ -192,7 +195,7 @@ if __name__ == '__main__':
     else: filename=None
 
     if opts.antAndPol == None:
-        print 'No antenna given for which to plot data.'
+        print('No antenna given for which to plot data.')
         exit_fail()
 
     if args==[]:
@@ -203,10 +206,10 @@ if __name__ == '__main__':
 
 try:
     # make the correlator object
-    print 'Connecting to correlator...',
+    print('Connecting to correlator...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO,connect=False)
     c.connect()
-    print 'done.'
+    print('done.')
 
     ant_str = opts.antAndPol
     rf_gain     =c.rf_status_get(ant_str)[1]
@@ -217,7 +220,7 @@ try:
     bandwidth   =c.config['bandwidth']
     if filename != None:
         import h5py
-        print 'Starting file %s.'%filename
+        print('Starting file %s.'%filename)
         f = h5py.File(filename, mode="w")
         baseline=r.get_adc_snapshot()
         f.create_dataset('raw_dumps',shape=[1,len(baseline)],dtype=numpy.int8,maxshape=[None,len(baseline)])
@@ -237,8 +240,8 @@ try:
 
     freqs=numpy.arange(n_chans)*float(bandwidth)/n_chans #channel center freqs in Hz
 
-    print 'Triggering at an ADC level of %i (approx %4.2fmV).'%(trig_level,trig_level*trig_scale_factor)
-    print 'Plotting %i samples.'%n_samples
+    print('Triggering at an ADC level of %i (approx %4.2fmV).'%(trig_level,trig_level*trig_scale_factor))
+    print('Plotting %i samples.'%n_samples)
 
     # set up the figure with a subplot for each polarisation to be plotted
     fig = matplotlib.pyplot.figure()
@@ -250,7 +253,7 @@ try:
         subplots.append(subPlot)
 
     # start the process
-    print 'Starting plots...'
+    print('Starting plots...')
     fig.subplots_adjust(hspace=0.8)
     fig.canvas.manager.window.after(100, drawDataCallback, n_samples,opts.plot_indep,trig_level)
     matplotlib.pyplot.show()
@@ -261,7 +264,7 @@ except:
 #    exit_fail()
     raise
 
-print 'Done with all.'
+print('Done with all.')
 exit_clean()
 
 # end

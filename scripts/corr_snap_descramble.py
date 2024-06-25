@@ -11,8 +11,12 @@ Rev:
                 Added more useful summary logging.
 
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging, construct
 from construct import *
+import six
+from six.moves import range
 
 # OOB signalling bit offsets - seem to be the same for wb and nb:
 data_bitstruct = construct.BitStruct("oob",
@@ -26,8 +30,8 @@ data_repeater = construct.GreedyRepeater(data_bitstruct)
 dev_prefix = 'snap_descramble'
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n', c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n', c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except:
@@ -108,19 +112,19 @@ def grab_snap_data(c, dev_name):
     Grab the required amount of data off the snap blocks on the x-engines.
     """
     dmp = dict()
-    print 'Trying to retrieve %i words from %s for each x-engine...' % (expected_length, dev_name)
-    print '------------------------'
+    print('Trying to retrieve %i words from %s for each x-engine...' % (expected_length, dev_name))
+    print('------------------------')
     #dmp = [[0 for i in range(expected_length*4)] for f in fpgas]
-    print 'Triggering and capturing from offset 0 ...',
+    print('Triggering and capturing from offset 0 ...', end=' ')
     dmp = corr.snap.snapshots_get(c.xfpgas, dev_name, man_trig = man_trigger, man_valid = raw_capture, wait_period = 2, offset = 0, circular_capture = False)
-    print 'done'
+    print('done')
     while (dmp['lengths'][0] / 4) < expected_length:
         capture_offset = dmp['lengths'][0]
-        print 'Triggering and capturing at offset %i...' % capture_offset,
+        print('Triggering and capturing at offset %i...' % capture_offset, end=' ')
         bram_tmp = corr.snap.snapshots_get(c.xfpgas, dev_name, man_trig = man_trigger, man_valid = raw_capture, wait_period = 1, offset = capture_offset, circular_capture = False)
         for f, fpga in enumerate(c.xfpgas):
             dmp['data'][f] += bram_tmp['data'][f]
-        print 'done'
+        print('done')
         for f, fpga in enumerate(c.xfpgas):
             if (bram_tmp['lengths'][f] != bram_tmp['lengths'][f - 1]):
                 raise RuntimeError('Not all X engines captured the same amount of snapshot data.')
@@ -131,7 +135,7 @@ def grab_snap_data(c, dev_name):
     #print 'BRAM DUMPS:'
     #print dmp
     for f, fpga in enumerate(c.xfpgas):
-        print 'Got %i bytes starting at offset %i from snapshot %s on device %s' % (dmp['lengths'][f], dmp['offsets'][f], dev_name, c.xsrvs[f])
+        print('Got %i bytes starting at offset %i from snapshot %s on device %s' % (dmp['lengths'][f], dmp['offsets'][f], dev_name, c.xsrvs[f]))
     #print 'Total size for each x engine: %i bytes'%len(dmp[0])
     return dmp
 
@@ -141,15 +145,15 @@ def create_data(c, xeng_number):
     dev_name = '%s%1i' % (dev_prefix, xeng_number)
     snapdump = grab_snap_data(c, dev_name)
 
-    print 'Unpacking bram contents...',
+    print('Unpacking bram contents...', end=' ')
     sys.stdout.flush()
     oobdata = dict()
     for f, fpga in enumerate(c.xfpgas):
         if snapdump['lengths'][f] == 0:
-            print 'Warning: got nothing back from snap block %s on %s.' % (dev_name, c.xsrvs[f])
+            print('Warning: got nothing back from snap block %s on %s.' % (dev_name, c.xsrvs[f]))
         else:
             oobdata[f] = data_repeater.parse(snapdump['data'][f])
-    print 'done.'
+    print('done.')
 
     if opts.verbose:
         for f, fpga in enumerate(c.xfpgas):
@@ -167,20 +171,20 @@ def create_data(c, xeng_number):
                 act_mcnt = (pkt_mcnt+xeng)
                 act_freq = act_mcnt%c.config['n_chans']
                 xeng_slice = i % c.config['xeng_acc_len']+1
-                print '[%s] Xeng%i BRAM IDX: %6i Valid IDX: %10i Rounded MCNT: %6i. Global MCNT: %6i. Freq %4i, Data: 0x%04x. EXPECTING: slice %3i/%3i of ant %3i, freq %3i.' % (fpga.host, \
-                        xeng, ir, i, pkt_mcnt, act_mcnt, act_freq, pkt_data, xeng_slice, c.config['xeng_acc_len'], exp_ant, exp_freq),
+                print('[%s] Xeng%i BRAM IDX: %6i Valid IDX: %10i Rounded MCNT: %6i. Global MCNT: %6i. Freq %4i, Data: 0x%04x. EXPECTING: slice %3i/%3i of ant %3i, freq %3i.' % (fpga.host, \
+                        xeng, ir, i, pkt_mcnt, act_mcnt, act_freq, pkt_data, xeng_slice, c.config['xeng_acc_len'], exp_ant, exp_freq), end=' ')
                 if oob['valid']: 
-                    print '[VALID]',
+                    print('[VALID]', end=' ')
                     i = i + 1
-                if oob['received']:  print '[RCVD]',
-                if oob['flag']:      print '[FLAG_BAD]',
-                print ''
+                if oob['received']:  print('[RCVD]', end=' ')
+                if oob['flag']:      print('[FLAG_BAD]', end=' ')
+                print('')
 
     #print len(dmp['data'][0])
     #print dmp['lengths']
 
     if not raw_capture and not opts.circ:
-        print 'Analysing contents of %s...' % dev_name
+        print('Analysing contents of %s...' % dev_name)
         rep = dict()
         mcnts = dict()
         freqs = []
@@ -208,35 +212,35 @@ def create_data(c, xeng_number):
                 xeng_unpkd = xeng_in_unpack(oobdata[f], i)
                 if not freqs.__contains__(exp_freq):
                     if exp_freq != last_freq + 1:
-                        print 'Frequency jumped from %d to %d' % (last_freq, exp_freq)
+                        print('Frequency jumped from %d to %d' % (last_freq, exp_freq))
                     freqs.append(exp_freq)
                     last_freq = exp_freq
                 if opts.plot:
                     plot_data[exp_ant][0][exp_freq] = plot_data[exp_ant][0][exp_freq] + xeng_unpkd['rms_polQ']
                     plot_data[exp_ant][1][exp_freq] = plot_data[exp_ant][1][exp_freq] + xeng_unpkd['rms_polI']
-                print '[%s] IDX: %6i. XENG: %3i. ANT: %4i. FREQ: %4i. 4 bit power: PolQ: %4.2f, PolI: %4.2f' % (fpga.host, i, xeng, exp_ant, exp_freq, xeng_unpkd['rms_polQ'], xeng_unpkd['rms_polI']),
+                print('[%s] IDX: %6i. XENG: %3i. ANT: %4i. FREQ: %4i. 4 bit power: PolQ: %4.2f, PolI: %4.2f' % (fpga.host, i, xeng, exp_ant, exp_freq, xeng_unpkd['rms_polQ'], xeng_unpkd['rms_polI']), end=' ')
                 if xeng_unpkd['rcvd_errs'] > 0: 
-                    print '[%i RCV ERRS!]'%xeng_unpkd['rcvd_errs'],
-                    if not rep[f].has_key('Rcv Errors'):
+                    print('[%i RCV ERRS!]'%xeng_unpkd['rcvd_errs'], end=' ')
+                    if 'Rcv Errors' not in rep[f]:
                         rep[f]['Rcv Errors ant %i'%exp_ant] = 1
                     else:
                         rep[f]['Rcv Errors ant %i'%exp_ant] += 1
                 if xeng_unpkd['flag_errs'] > 0: 
-                    print '[%i FLAGGED DATA]'%xeng_unpkd['flag_errs'],
-                    if not rep[f].has_key('Flagged bad data ant %i'%exp_ant):
+                    print('[%i FLAGGED DATA]'%xeng_unpkd['flag_errs'], end=' ')
+                    if 'Flagged bad data ant %i'%exp_ant not in rep[f]:
                         rep[f]['Flagged bad data ant %i'%exp_ant] = 1
                     else:
                         rep[f]['Flagged bad data ant %i'%exp_ant] += 1
                 if xeng_unpkd['flag_errs']==0 and xeng_unpkd['rcvd_errs']==0: 
-                    if not rep[f].has_key('Good data received ant %i'%exp_ant):
+                    if 'Good data received ant %i'%exp_ant not in rep[f]:
                         rep[f]['Good data received ant %i'%exp_ant] = 1
                     else:
                         rep[f]['Good data received ant %i'%exp_ant] += 1
-                if not rep[f].has_key('Total data received'):
+                if 'Total data received' not in rep[f]:
                     rep[f]['Total data received'] = 1
                 else:
                     rep[f]['Total data received'] += 1
-                print ''
+                print('')
 
     return snapdump, oobdata, rep, plot_data
 
@@ -265,13 +269,13 @@ if __name__ == '__main__':
 
     if opts.man_trigger:
         man_trigger = True
-        print 'NOTE: expected frequencies and antenna indices will be wrong with manual trigger option.'
+        print('NOTE: expected frequencies and antenna indices will be wrong with manual trigger option.')
     else:
         man_trigger = False
 
     if opts.raw:
         raw_capture = True
-        print 'NOTE: number of decoded frequency channels will not be accurate with RAW capture mode.'
+        print('NOTE: number of decoded frequency channels will not be accurate with RAW capture mode.')
     else:
         raw_capture = False
 
@@ -293,10 +297,10 @@ if __name__ == '__main__':
     verbose = opts.verbose
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
 
     binary_point = c.config['feng_fix_pnt_pos']
     num_bits = c.config['feng_bits']
@@ -307,10 +311,10 @@ try:
     if opts.circ:
         bram_dmp = dict()
         for xeng_number in xeng_numbers:
-            print 'Enabling circular-buffer capture on snap block %s.\n Triggering and Capturing, waiting for error...' % dev_name,
+            print('Enabling circular-buffer capture on snap block %s.\n Triggering and Capturing, waiting for error...' % dev_name, end=' ')
             sys.stdout.flush()
             bram_dmp[dev_name] = corr.snap.snapshots_get(c.xfpgas, '%s%1i' % (dev_prefix, xeng_number), man_trig = man_trigger, man_valid = raw_capture, wait_period = -1, offset = 0, circular_capture = True)
-            print 'done.'
+            print('done.')
     else:
         bram_dmp = dict()
         bram_oob = dict()
@@ -319,15 +323,15 @@ try:
         # get x-engine data off all xfpgas, for x-engine 0, 1, ...
         for xeng_number in xeng_numbers:
             bram_dmp[xeng_number], bram_oob[xeng_number], report[xeng_number], plot_data[xeng_number] = create_data(c, xeng_number)
-        print '\n\nDone with all xFPGAs.\nSummary:\n=========================='
+        print('\n\nDone with all xFPGAs.\nSummary:\n==========================')
         for f, fpga in enumerate(c.xfpgas):
             for x, xeng_number in enumerate(xeng_numbers):
-                print '------------------------'
-                print fpga.host, '%s%1i' % (dev_prefix, xeng_number)
-                print '------------------------'
-                for key in sorted(report[x][f].iteritems()):
-                    print key[0], ': ', key[1]
-        print '=========================='
+                print('------------------------')
+                print(fpga.host, '%s%1i' % (dev_prefix, xeng_number))
+                print('------------------------')
+                for key in sorted(six.iteritems(report[x][f])):
+                    print(key[0], ': ', key[1])
+        print('==========================')
 
         if opts.plot:
             pd = []

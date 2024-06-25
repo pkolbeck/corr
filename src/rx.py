@@ -7,6 +7,8 @@
                 Timestamps to SD.
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import threading
 import numpy as np
 import spead64_48 as spead
@@ -67,7 +69,7 @@ class CorrRx(threading.Thread):
             logger.debug("PROCESSING HEAP idx(%i) cnt(%i) @ %.4f" % (idx, heap.heap_cnt, time.time()))
             for name in ig.keys():
                 item = ig.get_item(name)
-                if not item._changed and datasets.has_key(name): continue # the item is not marked as changed, and we have a record for it
+                if not item._changed and name in datasets: continue # the item is not marked as changed, and we have a record for it
                 if name in meta_desired:
                     meta[name] = ig[name]
                 if name in meta_required:
@@ -88,7 +90,7 @@ class CorrRx(threading.Thread):
                             init_val=ig.get_item(meta_item).get_value())
                         tx_sd.send_heap(ig_sd.get_heap())
 
-                if not datasets.has_key(name):
+                if name not in datasets:
                  # check to see if we have encountered this type before
                     shape = ig[name].shape if item.shape == -1 else item.shape
                     dtype = np.dtype(type(ig[name])) if shape == [] else item.dtype
@@ -108,7 +110,7 @@ class CorrRx(threading.Thread):
                     sd_timestamp = ig['sync_time'] + (ig['timestamp'] / float(ig['scale_factor_timestamp']))
                     #logger.info("SD Timestamp: %f (%s)."%(sd_timestamp,time.ctime(sd_timestamp)))
 
-                    scale_factor=float(meta['n_accs'] if (meta.has_key('n_accs') and acc_scale) else 1)
+                    scale_factor=float(meta['n_accs'] if ('n_accs' in meta and acc_scale) else 1)
                     scaled_data = (ig[name]/scale_factor).astype(np.float32)
 
                      # reinit the group to force meta data resend
@@ -162,7 +164,7 @@ class CorrRx(threading.Thread):
         '''
         Process SPEAD data from X engines and forward it to the SD.
         '''
-        print 'WARNING: This function is not yet tested. YMMV.'
+        print('WARNING: This function is not yet tested. YMMV.')
         logger=self.logger
         logger.info("Data reception on port %i."%data_port)
         rx = spead.TransportUDPrx(data_port, pkt_count=1024, buffer_size=51200000)
@@ -199,7 +201,7 @@ class CorrRx(threading.Thread):
                 item = ig.get_item(name)
 
                 # the item is not marked as changed and we already have a record for it, continue
-                if not item._changed and datasets.has_key(name):
+                if not item._changed and name in datasets:
                   continue
                 logger.debug("PROCESSING KEY %s @ %.4f" % (name, time.time()))
 
@@ -224,7 +226,7 @@ class CorrRx(threading.Thread):
                         init_val=ig.get_item(meta_item).get_value())
                     tx_sd.send_heap(ig_sd.get_heap())
                     sd_slots = np.zeros(meta['n_xengs'])
-                if not datasets.has_key(name):
+                if name not in datasets:
                  # check to see if we have encountered this type before
                   shape = ig[name].shape if item.shape == -1 else item.shape
                   dtype = np.dtype(type(ig[name])) if shape == [] else item.dtype
@@ -253,7 +255,7 @@ class CorrRx(threading.Thread):
                   xeng_id = int(name[9:])
                   timestamp = ig['sync_time'] + (ig[name] / ig['scale_factor_timestamp']) #in seconds since unix epoch
                   localTime = time.time()
-                  print "Decoded timestamp for Xeng", xeng_id, ":", timestamp, " (", time.ctime(timestamp),") @ %.4f" % localTime, " ", time.ctime(localTime), "diff(", localTime-timestamp, ")"
+                  print("Decoded timestamp for Xeng", xeng_id, ":", timestamp, " (", time.ctime(timestamp),") @ %.4f" % localTime, " ", time.ctime(localTime), "diff(", localTime-timestamp, ")")
 
                   # is this timestamp in the past?
                   if currentTimestamp > timestamp:
@@ -288,7 +290,7 @@ class CorrRx(threading.Thread):
                     ig_sd.add_item(name=('sd_timestamp'), id=0x3502, description='Timestamp of this sd frame in centiseconds since epoch (40 bit limitation).', shape=[], fmt=spead.mkfmt(('u',spead.ADDRSIZE)))
                     t_it = ig_sd.get_item('sd_data')
                     logger.info("Added SD frame with shape %s, dtype %s" % (str(t_it.shape),str(t_it.dtype)))
-                    scale_factor=(meta['n_accs'] if meta.has_key('n_accs') else 1)
+                    scale_factor=(meta['n_accs'] if 'n_accs' in meta else 1)
                     logger.info("Sending signal display frame with timestamp %i (%s). %s. @ %.4f" % (timestamp, time.ctime(timestamp), "Unscaled" if not acc_scale else "Scaled by %i" % (scale_factor), time.time()))
                     ig_sd['sd_data'] = sd_frame.astype(np.float32) if not acc_scale else (sd_frame / float(scale_factor)).astype(np.float32)
                     ig_sd['sd_timestamp'] = int(timestamp * 100)

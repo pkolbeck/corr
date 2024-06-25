@@ -7,6 +7,8 @@ Revisions:\n
 2010-07-29 PVP Cleanup as part of the move to ROACH F-Engines.\n
 2009------ JRM Initial revision.\n
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
@@ -38,11 +40,11 @@ if __name__ == '__main__':
     opts, args = p.parse_args(sys.argv[1:])
 
     if (opts.txStart and opts.txStop):
-        print 'Epic fail! --stop or --start, not both.'
+        print('Epic fail! --stop or --start, not both.')
         exit()
 
     if not (opts.txStart or opts.txStop):
-        print 'Epic fail! --stop or --start.'
+        print('Epic fail! --stop or --start.')
         exit()
 
     if args==[]:
@@ -53,54 +55,54 @@ if __name__ == '__main__':
 
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=(logging.DEBUG if verbose else logging.INFO),connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
-    print "Current settings:"
+    print("Current settings:")
     regValues = c.xeng_ctrl_get_all()
     for fn,value in enumerate(regValues):
-        print "\t" + c.xsrvs[fn] + ": tx " + ("enabled" if value['gbe_out_enable'] else "disabled")
+        print("\t" + c.xsrvs[fn] + ": tx " + ("enabled" if value['gbe_out_enable'] else "disabled"))
 
     if opts.txStart:
-        print "Sending meta data to %s:%i."%(c.config['rx_meta_ip_str'],c.config['rx_udp_port'])
+        print("Sending meta data to %s:%i."%(c.config['rx_meta_ip_str'],c.config['rx_udp_port']))
          
-        print ''' Issuing data descriptors...''',
+        print(''' Issuing data descriptors...''', end=' ')
         sys.stdout.flush()
         c.spead_data_descriptor_issue()
-        print 'SPEAD packet sent.'
+        print('SPEAD packet sent.')
         
-        print ''' Issuing static metadata...''',
+        print(''' Issuing static metadata...''', end=' ')
         sys.stdout.flush()
         c.spead_static_meta_issue()
-        print 'SPEAD packet sent.'
+        print('SPEAD packet sent.')
         
-        print ''' Issuing timing metadata...''',
+        print(''' Issuing timing metadata...''', end=' ')
         sys.stdout.flush()
         c.spead_time_meta_issue()
-        print 'SPEAD packet sent.'
+        print('SPEAD packet sent.')
         
-        print ''' Issuing eq metadata...''',
+        print(''' Issuing eq metadata...''', end=' ')
         sys.stdout.flush()
         c.spead_eq_meta_issue()
-        print 'SPEAD packet sent.'
+        print('SPEAD packet sent.')
 
-        print 'Starting TX...',
+        print('Starting TX...', end=' ')
         sys.stdout.flush()
         c.enable_udp_output()
-        print 'done.'
+        print('done.')
 
     if opts.txStop:
-        print 'Stopping TX...',
+        print('Stopping TX...', end=' ')
         sys.stdout.flush()
         c.disable_udp_output()
-        print 'done.'
+        print('done.')
 
-    print "Now:"
+    print("Now:")
     regValues = c.xeng_ctrl_get_all()
     for fn,value in enumerate(regValues):
-        print "\t" + c.xsrvs[fn] + ": tx " + ("enabled" if value['gbe_out_enable'] else "disabled")
+        print("\t" + c.xsrvs[fn] + ": tx " + ("enabled" if value['gbe_out_enable'] else "disabled"))
 
 except KeyboardInterrupt:
     exit_clean()

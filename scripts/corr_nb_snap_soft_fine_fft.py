@@ -10,6 +10,9 @@
 # So buffer up fine_chan of each of the specified channels and plot the FFT of that.
 #
 
+from __future__ import absolute_import
+from __future__ import print_function
+from six.moves import range
 snap_len = 1024
 snap_len_bytes = 8192
 
@@ -42,7 +45,7 @@ if readfile != "":
     except IOError:
         raise RuntimeError("Can't read from file:", readfile)
     f.close()
-    print "Setting accumulations to 1."
+    print("Setting accumulations to 1.")
     opts.accumulations = 1 
 if writefile != "":
     f = None
@@ -73,16 +76,16 @@ def get_coarse_data(c, channels, snaps, pol):
     for chan in channels:
         data[chan] = []
     ctr = 0
-    print '\tGrabbing snapshot: %4i/%4i' % (ctr, snaps),
+    print('\tGrabbing snapshot: %4i/%4i' % (ctr, snaps), end=' ')
     while ctr < snaps:
-        print 11 * '\b', '%4i/%4i' % (ctr, snaps),
+        print(11 * '\b', '%4i/%4i' % (ctr, snaps), end=' ')
         sys.stdout.flush()
         coarse_fft_data = corr.corr_nb.get_snap_coarse_fft(c, [c.ffpgas[opts.fpga]], pol)[0]
         for chan in channels:
             d = coarse_fft_data[chan::(c.config['coarse_chans'] * 2)]
             data[chan].extend(d)
         ctr+=1
-    print ''
+    print('')
     return data
 
 def get_buffer_data(c, channel, pol):
@@ -90,18 +93,18 @@ def get_buffer_data(c, channel, pol):
     data[channel] = []
     ctr = 0
     snaps_to_get = c.config['n_chans'] / snap_len
-    print '\tGrabbing snapshot: %4i/%4i' % (ctr, snaps_to_get),
+    print('\tGrabbing snapshot: %4i/%4i' % (ctr, snaps_to_get), end=' ')
     while ctr < snaps_to_get:
-        print 11 * '\b', '%4i/%4i' % (ctr, snaps_to_get),
+        print(11 * '\b', '%4i/%4i' % (ctr, snaps_to_get), end=' ')
         sys.stdout.flush()
         snap_data = corr.corr_nb.get_snap_fine_buffer(c = c, fpgas = [c.ffpgas[opts.fpga]], offset = ctr * snap_len_bytes)[0]
         data[channel].extend(snap_data[pol])
         ctr+=1
-    print ''
+    print('')
     return data
 
 def get_data_from_file(filename, channels):
-    print "Reading from file", filename
+    print("Reading from file", filename)
     sys.stdout.flush()
     f = open(filename, 'r')
     data = {}
@@ -109,7 +112,7 @@ def get_data_from_file(filename, channels):
         try:
             d = pickle.load(f)
             for k,e in d.items():
-                if data.has_key(k):
+                if k in data:
                     data[k].extend(e)
                 else:
                     data[k] = e
@@ -117,35 +120,35 @@ def get_data_from_file(filename, channels):
             f.close()
             break
     for chan in channels:
-        if data.keys().count(chan) == 0:
-            print "\tWARNING: can't find requested channel %i in data from file, removing from channel list!" % chan
+        if list(data.keys()).count(chan) == 0:
+            print("\tWARNING: can't find requested channel %i in data from file, removing from channel list!" % chan)
             channels.remove(chan)
     return data
 
 try:    
-    print 'Connecting to correlator...',
+    print('Connecting to correlator...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.INFO, connect = False)
     if not c.is_narrowband():
         raise RuntimeError("Only valid for narrowband modes.") 
     c.connect()
-    print 'done'
+    print('done')
 
     if opts.finechans == -1:
         n_chans = c.config['n_chans']
     else:
         n_chans = opts.finechans
 
-    print 'WARNING - this script is gonna take ages.'
+    print('WARNING - this script is gonna take ages.')
     snaps_per_fine_fft = n_chans / (snap_len / (c.config['coarse_chans'] * 2))
-    print 'Loading coarse data for one fine FFT. Need to read snap %i times.' % snaps_per_fine_fft
+    print('Loading coarse data for one fine FFT. Need to read snap %i times.' % snaps_per_fine_fft)
 
     channels = []
     if opts.coarse_chans == "all":
-        channels = range(0, c.config['coarse_chans'])
+        channels = list(range(0, c.config['coarse_chans']))
     else: 
         for s in opts.coarse_chans.strip().split(','):
             channels.append(int(s))
-    print 'Will get data for', channels
+    print('Will get data for', channels)
 
     if plot:
         import pylab
@@ -156,7 +159,7 @@ try:
     for chan in channels:
         accumulated[chan] = numpy.array(numpy.zeros(n_chans))
     while accum_counter < opts.accumulations or opts.accumulations == -1:
-        print 'Reading snapshot set %i now.' % accum_counter
+        print('Reading snapshot set %i now.' % accum_counter)
         sys.stdout.flush()
         data = {}
 
@@ -171,20 +174,20 @@ try:
 
         # write data to file
         if writefile != "":
-            print '\tWriting to file', writefile,
+            print('\tWriting to file', writefile, end=' ')
             sys.stdout.flush()
             f = open(writefile, 'a')
             pickle.dump(data, f)
             f.close()
-            print ', done.'
+            print(', done.')
             sys.stdout.flush()
         
         # accumulate
-        print 'Accumulating and FFTing...',
+        print('Accumulating and FFTing...', end=' ')
         sys.stdout.flush()
         for chan in channels:
             accums = len(data[chan])/n_chans
-            print 'chan(%i,%i)' % (chan, accums),
+            print('chan(%i,%i)' % (chan, accums), end=' ')
             for ctr in range(0, accums):
                 d = data[chan][ctr*n_chans : (ctr+1)*n_chans]
                 fftd = numpy.fft.fft(d, n = n_chans)
@@ -192,13 +195,13 @@ try:
                 #pwr = (fftd.real**2 + fftd.imag**2) ** 0.5
                 #accumulated[chan] += numpy.array(pwr)
         del data
-        print 'done.'
+        print('done.')
 
         accum_counter += 1
 
     # update the plots
     if plot:
-        print 'Plotting...',
+        print('Plotting...', end=' ')
         sys.stdout.flush()
         pylab.cla()
         for chan in channels:
@@ -208,11 +211,11 @@ try:
             swapped = numpy.array(swapped)
             pylab.plot(swapped / accum_counter)
         pylab.show()
-        print 'done.'
+        print('done.')
 
     c.disconnect_all()
 
-except KeyboardInterrupt, RuntimeError:
+except KeyboardInterrupt as RuntimeError:
 
     c.disconnect_all()
 

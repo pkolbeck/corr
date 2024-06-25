@@ -8,12 +8,14 @@ Revisions:\n
 2010-11-16: PVP: Working with 4 bits fixed (affects number of bins). Need reconfigurable dp and number of quant bits.
 2010-08-06: JRM: Initial version based on corr_adc_hist.py from Paul.\n
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import matplotlib, time, corr, numpy, struct, sys, pylab, os, logging
 
 # exit cleanly
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n', lh.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n', lh.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except:
@@ -82,21 +84,21 @@ if opts.antAndPol != None:
     polList = parseAntenna(opts.antAndPol)
     #polList = opts.antAndPol
 else:
-    print 'No antenna given for which to plot data.'
+    print('No antenna given for which to plot data.')
     exit_fail()
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_handler = lh, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
 
     # some configuration from the config file
     quantBits = c.config['feng_bits']    
     binaryPoint = c.config['feng_fix_pnt_pos']
     
     if quantBits != 4: 
-        print 'This script is only designed to work with 4-bit quantised correlators. Yours has %i bits!'%quantBits
+        print('This script is only designed to work with 4-bit quantised correlators. Yours has %i bits!'%quantBits)
 
     # set up the figure with a subplot for each polarisation to be plotted
     fig = matplotlib.pyplot.figure()
@@ -152,14 +154,14 @@ try:
     # start the process
     fig.canvas.manager.window.after(100, drawDataCallback, opts.comparePlots)
     matplotlib.pyplot.show()
-    print 'Plot started.'
+    print('Plot started.')
 
 except KeyboardInterrupt:
     exit_clean()
 except:
     exit_fail()
 
-print 'Done with all.'
+print('Done with all.')
 exit_clean()
 
 # end

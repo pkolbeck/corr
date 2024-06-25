@@ -1,5 +1,7 @@
 """Module for performing various iADC functions from software. 
 Author: Jason Manley, using code segments from Hong Chen and David George."""
+from __future__ import absolute_import
+from __future__ import print_function
 import numpy,struct,time
 
 def spi_write_register(fpga,zdok_n,reg_addr,reg_value):
@@ -72,7 +74,7 @@ def analogue_gain_adj(fpga,zdok_n,gain_I=0,gain_Q=0):
     sign_I = 1 if gain_I<0 else 0
     sign_Q = 1 if gain_Q<0 else 0
     val=((sign_Q<<15) + (sign_I<<7) + (bits_Q<<8) + (bits_I<<0))
-    print 'Writing %4x'%(val)
+    print('Writing %4x'%(val))
     spi_write_register(fpga,zdok_n,0x1,val)
 
 
@@ -85,7 +87,7 @@ def offset_adj(fpga,zdok_n,offset_I=0,offset_Q=0):
     sign_I = 1 if offset_I>0 else 0
     sign_Q = 1 if offset_Q>0 else 0
     val=((sign_Q<<15) + (sign_I<<7) + (bits_Q<<8) + (bits_I<<0))
-    print 'Writing %4x'%(val)
+    print('Writing %4x'%(val))
     spi_write_register(fpga,zdok_n,0x2,val)
 
 def gain_adj(fpga,zdok_n,gain):
@@ -93,7 +95,7 @@ def gain_adj(fpga,zdok_n,gain):
     if gain<-0.315 or gain>0.315: raise RuntimeError("Invalid gain setting. Valid range is -1.5 to +1.5dB")
     bits= abs(int(((gain)*63)/0.315))
     sign = 1 if gain<0 else 0
-    print 'Writing %4x'%((sign<<6) + (bits<<0))
+    print('Writing %4x'%((sign<<6) + (bits<<0)))
     spi_write_register(fpga,zdok_n,0x3,(sign<<6) + (bits<<0))
 
 def fisda_Q_adj(fpga,zdock_n,delay=0):
@@ -101,6 +103,6 @@ def fisda_Q_adj(fpga,zdock_n,delay=0):
     if delay<-60 or delay>60: raise RuntimeError("Invalid delay setting. Valid range is -60ps to +60ps.")
     bits= abs(int(((delay)*15)/60))
     sign = 1 if delay<0 else 0
-    print 'Writing %4x'%((sign<<10) + (bits<<6))
+    print('Writing %4x'%((sign<<10) + (bits<<6)))
     spi_write_register(fpga,zdok_n,0x7,(sign<<10) + (bits<<6))
     

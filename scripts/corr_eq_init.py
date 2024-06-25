@@ -3,11 +3,14 @@
 Author: Jason Manley
 Revs:
 2010-07-29  JRM Port to corr-0.5.0 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, numpy, sys, os, time, logging
+from six.moves import range
 
 def re_equalize(self, thresh=.1, maxval=2**17-1, max_tries=10):
         """Automatically adjust equalization for maximum flatness around 4b pwr of 10."""
-        print 'Equalizing'
+        print('Equalizing')
         for i in range(max_tries):
             d = 0
             for bl in autos: d += read_acc(bl)
@@ -19,18 +22,18 @@ def re_equalize(self, thresh=.1, maxval=2**17-1, max_tries=10):
             neweq = abs(10**numpy.polyval(p, numpy.arange(d.size)))
             neweq = numpy.clip(neweq, 0, maxval)
             fit = math.sqrt(numpy.average((1 - (neweq/equalization))**2))
-            print '    Percent gain change:', fit, '(thresh=%f)\n' % thresh
+            print('    Percent gain change:', fit, '(thresh=%f)\n' % thresh)
             if fit < thresh: break
             equalization = numpy.round(neweq)
             _apply_eq(active_chans, equalization)
             curr_acc = self['acc_num']
-            print '    Waiting for accumulation...'
+            print('    Waiting for accumulation...')
             while self['acc_num'] <= curr_acc + 1: time.sleep(.01)
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -65,10 +68,10 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO, connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
     servers = c.fsrvs
     fpgas = c.ffpgas
@@ -79,15 +82,15 @@ try:
     #auto_eq = c.config['auto_eq']
 
     if (opts.init_eq >= 0):
-        print '''Resetting all F engines' %i channels' gains to %i...''' % (n_chans, opts.init_eq),
+        print('''Resetting all F engines' %i channels' gains to %i...''' % (n_chans, opts.init_eq), end=' ')
         sys.stdout.flush()
         c.eq_set_all(init_poly = [opts.init_eq])
-        print 'Done.'
+        print('Done.')
     else:
-        print '''Configuring channels' gains to default values as listed in config file...''',
+        print('''Configuring channels' gains to default values as listed in config file...''', end=' ')
         sys.stdout.flush()
         c.eq_set_all()
-        print 'Done.'
+        print('Done.')
 
     #elif (not auto_eq) or opts.eq_poly:
     #    print '''Configuring channels' gains to default values as listed in config file...''',

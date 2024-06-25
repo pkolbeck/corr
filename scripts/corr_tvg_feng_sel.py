@@ -1,11 +1,13 @@
 #! /usr/bin/env python
 """Selects TVGs thoughout the correlator.\n
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -47,45 +49,45 @@ if  __name__ == '__main__':
 try:
     raise RuntimeError('This script is farked. Don''t use it.')
 
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO,connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
-    print 'F-engine TVGs:'
+    print('F-engine TVGs:')
     kwargs = {}
 
     if opts.tvg_enable == 1:
-        print "\tGlobal TVG enable ON"
+        print("\tGlobal TVG enable ON")
         kwargs["tvg_en"] = True
     elif opts.tvg_enable == 0:
-        print "\tGlobal TVG enable OFF"
+        print("\tGlobal TVG enable OFF")
         kwargs["tvg_en"] = False
     
     if opts.tvg_fdfs == 1:
-        print "\tEnabling FD,FS TVG"
+        print("\tEnabling FD,FS TVG")
         kwargs["tvgsel_fdfs"] = True
     elif opts.tvg_fdfs == 0:
-        print "\tDisabling FD,FS TVG"
+        print("\tDisabling FD,FS TVG")
         kwargs["tvgsel_fdfs"] = False
 
     if opts.tvg_packetiser == 1:
-        print "\tEnabling packetiser TVG"
+        print("\tEnabling packetiser TVG")
         kwargs["tvg_pkt_sel"] = True
     elif opts.tvg_packetiser == 0:
-        print "\tDisabling packetiser TVG"
+        print("\tDisabling packetiser TVG")
         kwargs["tvg_pkt_sel"] = False
 
     if opts.tvg_ct == 1:
-        print "\tEnabling CT TVG"
+        print("\tEnabling CT TVG")
         kwargs["tvg_ct_sel"] = True
     elif opts.tvg_ct == 0:
-        print "\tDisabling CT TVG"
+        print("\tDisabling CT TVG")
         kwargs["tvg_ct_sel"] = False
 
     c.feng_ctrl_set_all(**kwargs)
     
-    print "Done."
+    print("Done.")
 
     #print '\nX engine TVGs:'
     #if opts.xeng:

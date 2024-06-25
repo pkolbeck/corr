@@ -1,11 +1,13 @@
 #! /usr/bin/env python
 """(Re)Issues SPEAD metadata and data descriptors so that receivers will be able to interpret the data.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -38,37 +40,37 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO,connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
-    print "Sending meta data to %s:%i."%(c.config['rx_meta_ip_str'],c.config['rx_udp_port'])
+    print("Sending meta data to %s:%i."%(c.config['rx_meta_ip_str'],c.config['rx_udp_port']))
 
-    print ''' Issuing data descriptors...''',
+    print(''' Issuing data descriptors...''', end=' ')
     sys.stdout.flush()
     c.spead_data_descriptor_issue()
-    print 'SPEAD packet sent.'
+    print('SPEAD packet sent.')
 
-    print ''' Issuing static metadata...''',
+    print(''' Issuing static metadata...''', end=' ')
     sys.stdout.flush()
     c.spead_static_meta_issue()
-    print 'SPEAD packet sent.'
+    print('SPEAD packet sent.')
 
-    print ''' Issuing timing metadata...''',
+    print(''' Issuing timing metadata...''', end=' ')
     sys.stdout.flush()
     c.spead_time_meta_issue()
-    print 'SPEAD packet sent.'
+    print('SPEAD packet sent.')
 
-    print ''' Issuing eq metadata...''',
+    print(''' Issuing eq metadata...''', end=' ')
     sys.stdout.flush()
     c.spead_eq_meta_issue()
-    print 'SPEAD packet sent.'
+    print('SPEAD packet sent.')
 
-    print ''' Issuing input labelling and mapping metadata...''',
+    print(''' Issuing input labelling and mapping metadata...''', end=' ')
     sys.stdout.flush()
     c.spead_labelling_issue()
-    print 'SPEAD packet sent.'
+    print('SPEAD packet sent.')
 
 
 

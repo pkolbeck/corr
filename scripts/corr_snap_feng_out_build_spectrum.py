@@ -12,12 +12,15 @@ Revisions:
 2012-01-25: JRM Added support for snap_10gbe_tx for correlators without XAUI links.
 2011-09-12: PVP Initial version.
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging
+from six.moves import range
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -32,23 +35,23 @@ def exit_clean():
 
 def print_packet_info_basic(server, count, d):
     #print '[%s @ %4i]: %016X' % (server, count, d.data),
-    print '[%s @ %4i] [%d]: %016X' % (server, count, d.ip_addr, d.data),
-    if d.eof: print '[EOF]',
-    if d.link_down: print '[LINK DOWN]',
-    if d.mrst: print '[MRST]',
-    if d.sync: print '[SYNC]',
-    if d.hdr_valid: print '[HDR]',
-    if d.tx_over: print '[TX OVER]',
-    if d.tx_full: print '[TX FULL]',
-    if d.led_tx: print '[LED TX]',
-    if d.link_up: print '[LINK UP]',
-    print '' 
+    print('[%s @ %4i] [%d]: %016X' % (server, count, d.ip_addr, d.data), end=' ')
+    if d.eof: print('[EOF]', end=' ')
+    if d.link_down: print('[LINK DOWN]', end=' ')
+    if d.mrst: print('[MRST]', end=' ')
+    if d.sync: print('[SYNC]', end=' ')
+    if d.hdr_valid: print('[HDR]', end=' ')
+    if d.tx_over: print('[TX OVER]', end=' ')
+    if d.tx_full: print('[TX FULL]', end=' ')
+    if d.led_tx: print('[LED TX]', end=' ')
+    if d.link_up: print('[LINK UP]', end=' ')
+    print('') 
 
 def print_10gbe_pkt_info_basic(server, count, d):
-    print '' 
+    print('') 
 
 def print_packet_info(server, header_index, length, unpacked, mcount):
-    print '[%s] [Pkt@ %4i Len: %2i]     (MCNT %16u ANT: %1i, Freq: %4i)  RMS: X: %1.2f Y: %1.2f.  {X: %1.2f+%1.2fj (%2.1f & %2.1f bits), Y:%1.2f+%1.2fj (%2.1f & %2.1f bits)} {Pk: X,Y: %1.2f,%1.2f (%2.1f,%2.1f bits)}' % \
+    print('[%s] [Pkt@ %4i Len: %2i]     (MCNT %16u ANT: %1i, Freq: %4i)  RMS: X: %1.2f Y: %1.2f.  {X: %1.2f+%1.2fj (%2.1f & %2.1f bits), Y:%1.2f+%1.2fj (%2.1f & %2.1f bits)} {Pk: X,Y: %1.2f,%1.2f (%2.1f,%2.1f bits)}' % \
         (server,\
         header_index,\
         length,\
@@ -68,7 +71,7 @@ def print_packet_info(server, header_index, length, unpacked, mcount):
         unpacked['pk_polQ'],\
         unpacked['pk_polI'],\
         unpacked['pk_bits_used_Q'],\
-        unpacked['pk_bits_used_I'])
+        unpacked['pk_bits_used_I']))
 
 def feng_unpack(f, hdr_index, pkt_len, skip_indices):
     pkt_64bit = data[f]['data'][hdr_index].data #struct.unpack('>Q',bram_dmp['bram_msb'][f][(4*hdr_index):(4*hdr_index)+4]+bram_dmp['bram_lsb'][f][(4*hdr_index):(4*hdr_index)+4])[0]
@@ -157,13 +160,13 @@ def process_packets(c, f_index, data, spectrum, report):
         if opts.verbose:
             print_packet_info_basic(fsrv, i, d)
         if d.link_down:
-            print '[%s] LINK DOWN AT %i' % (fsrv, i)
+            print('[%s] LINK DOWN AT %i' % (fsrv, i))
         elif d.hdr_valid:
             pkt_hdr_idx = i
             # skip_indices records positions in XAUI data which are ADC updates and should not be counted towards standard data.
             skip_indices = []
             if opts.verbose:
-                print 'HEADER RECEIVED INDEX %i' % pkt_hdr_idx
+                print('HEADER RECEIVED INDEX %i' % pkt_hdr_idx)
         elif d.eof:
             # skip the first packet entry which has no header (snap block triggered on sync)
             if pkt_hdr_idx < 0:
@@ -178,18 +181,18 @@ def process_packets(c, f_index, data, spectrum, report):
                 raise RuntimeError('How did we get a packet from fengine %i read from fengine %i?' % (feng_unpkd_pkt['pkt_ant'], f_index))
             spectrum[0][feng_unpkd_pkt['pkt_freq']] += feng_unpkd_pkt['rms_polQ']
             spectrum[1][feng_unpkd_pkt['pkt_freq']]+= feng_unpkd_pkt['rms_polI']
-            if opts.verbose: print ''
+            if opts.verbose: print('')
             pkt_hdr_idx=i+1
             skip_indices = []
             # packet_len is length of data, not including header
             if pkt_len - len(skip_indices) != (packet_len + 1):
-                print 'MALFORMED PACKET! of length %i starting at index %i' % (pkt_len - len(skip_indices), i)
-                print 'len of skip_indices: %i:' % len(skip_indices), skip_indices
-                if not report.has_key('Malformed packets'):
+                print('MALFORMED PACKET! of length %i starting at index %i' % (pkt_len - len(skip_indices), i))
+                print('len of skip_indices: %i:' % len(skip_indices), skip_indices)
+                if 'Malformed packets' not in report:
                     report['Malformed packets'] = 1
                 else: 
                     report['Malformed packets'] += 1
-            if not report.has_key('pkt_ant_%i' % feng_unpkd_pkt['pkt_ant']):
+            if 'pkt_ant_%i' % feng_unpkd_pkt['pkt_ant'] not in report:
                 report['pkt_ant_%i' % feng_unpkd_pkt['pkt_ant']] = 1
             else: 
                 report['pkt_ant_%i' % feng_unpkd_pkt['pkt_ant']] += 1
@@ -220,19 +223,19 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
     binary_point = c.config['feng_fix_pnt_pos']
     packet_len = c.config['10gbe_pkt_len']
     n_chans = c.config['n_chans']
     num_bits = c.config['feng_bits']
     feng_out_type= c.config['feng_out_type']
     if num_bits != 4:
-        print 'This script is only written to work with 4 bit quantised values.'
+        print('This script is only written to work with 4 bit quantised values.')
         raise KeyboardInterrupt
-    print 'You should have %i XAUI cables connected to each F engine FPGA.' % (c.config['n_xaui_ports_per_ffpga'])
+    print('You should have %i XAUI cables connected to each F engine FPGA.' % (c.config['n_xaui_ports_per_ffpga']))
     report = []
     for f in c.ffpgas: report.append(dict())
     spectrum = dict()
@@ -244,7 +247,7 @@ try:
     iterations = int(numpy.ceil(n_chans / fsets_per_snap))
     for i in range(0, iterations):
         offset = int(i * fsets_per_snap * bytes_per_fset)
-        print '%i/%i - capturing from offset %i.' % (i, iterations, offset)
+        print('%i/%i - capturing from offset %i.' % (i, iterations, offset))
         if feng_out_type=='10gbe':
             data = corr.snap.get_gbe_tx_snapshot_feng(c, offset = offset,snap_name = 'snap_gbe_tx%i'%opts.xaui_port)
             #print 'Grabbing and processing the spectrum data from 10GbE TX snap blocks.',
@@ -255,14 +258,14 @@ try:
             process_packets(c, d['fpga_index'], d['data'], spectrum[d['fpga_index']], report[d['fpga_index']])
     #print 'Done.\nGot %i 64-bit packets from %i f-engines.' % (len(data[0]['data']), len(data))
     for f, rep in enumerate(report):
-        keys = report[f].keys()
+        keys = list(report[f].keys())
         keys.sort()
-        print '------------------------'
-        print c.fsrvs[f] 
-        print '------------------------'
+        print('------------------------')
+        print(c.fsrvs[f]) 
+        print('------------------------')
         for key in sorted(keys):
-            print key,': ',report[f][key]
-    print '=========================='
+            print(key,': ',report[f][key])
+    print('==========================')
 
     import matplotlib, pylab
     for i in range(0, len(spectrum)):

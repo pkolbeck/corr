@@ -12,11 +12,15 @@ Revs:
 2011-06-30: PVP Updated to use new snapshot blocks and snap class.
 
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging
+import six
+from six.moves import range
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -134,16 +138,16 @@ if __name__ == '__main__':
     verbose = opts.verbose
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
 
-    print '------------------------'
+    print('------------------------')
 
-    print 'Grabbing and unpacking snap data... ',
+    print('Grabbing and unpacking snap data... ', end=' ')
     snap_data = corr.snap.get_gbe_rx_snapshot(c)
-    print 'done.'
+    print('done.')
 
     binary_point = c.config['feng_fix_pnt_pos']
     num_bits = c.config['feng_bits']
@@ -164,7 +168,7 @@ try:
 
     report = dict()
     mcnts = dict()
-    print 'Analysing packets:'
+    print('Analysing packets:')
     for s in snap_data:
         f = s['fpga_index']        
         report[f] = dict()
@@ -178,34 +182,34 @@ try:
         for i in range(len(s['data'])):
             if opts.verbose or opts.raw:
                 pkt_64bit = snap_data[f]['data'][i].data
-                print '[%s] IDX: %4i Contents: %016x' % (c.xsrvs[f], i, pkt_64bit),
-                if s['data'][i].led_rx: print '[rx_data]',
-                if s['data'][i].valid: print '[valid]',
-                if s['data'][i].ack: print '[rd_ack]',
-                if not s['data'][i].led_up: print '[LNK DN]',
-                if s['data'][i].bad_frame: print '[BAD FRAME]',
-                if s['data'][i].overflow: print '[OVERFLOW]',
-                if s['data'][i].eof: print '[eof]',
-                print ''
+                print('[%s] IDX: %4i Contents: %016x' % (c.xsrvs[f], i, pkt_64bit), end=' ')
+                if s['data'][i].led_rx: print('[rx_data]', end=' ')
+                if s['data'][i].valid: print('[valid]', end=' ')
+                if s['data'][i].ack: print('[rd_ack]', end=' ')
+                if not s['data'][i].led_up: print('[LNK DN]', end=' ')
+                if s['data'][i].bad_frame: print('[BAD FRAME]', end=' ')
+                if s['data'][i].overflow: print('[OVERFLOW]', end=' ')
+                if s['data'][i].eof: print('[eof]', end=' ')
+                print('')
 
             if s['data'][i].eof and not opts.raw:
                 pkt_ip_str = corr.corr_functions.ip2str(s['data'][i].ip_addr)
-                print '[%s] EOF at %4i. Src: %12s. Len: %3i. ' % (c.xsrvs[f], i, pkt_ip_str, i - prev_eof_index),
+                print('[%s] EOF at %4i. Src: %12s. Len: %3i. ' % (c.xsrvs[f], i, pkt_ip_str, i - prev_eof_index), end=' ')
                 report[f]['pkt_total'] += 1
                 hdr_index = prev_eof_index + 1
                 pkt_len = i - prev_eof_index
                 prev_eof_index = i
 
-                if not report[f].has_key('dest_ips'):
+                if 'dest_ips' not in report[f]:
                     report[f].update({'dest_ips': {pkt_ip_str: 1}})
-                elif report[f]['dest_ips'].has_key(pkt_ip_str):
+                elif pkt_ip_str in report[f]['dest_ips']:
                     report[f]['dest_ips'][pkt_ip_str] += 1
                 else:
                     report[f]['dest_ips'].update({pkt_ip_str: 1})
 
                 if pkt_len != packet_len + 1:
-                    print '[BAD PKT LEN]'
-                    if not report[f].has_key('bad_pkt_len'):
+                    print('[BAD PKT LEN]')
+                    if 'bad_pkt_len' not in report[f]:
                         report[f]['bad_pkt_len'] = 1
                     else:
                         report[f]['bad_pkt_len'] += 1
@@ -219,17 +223,17 @@ try:
                         mcnts[f][unpkd_pkt['pkt_mcnt']][unpkd_pkt['pkt_ant']] = i
                     #print mcnts
 
-                    print 'HDR @ %4i. MCNT %12u. Ant: %3i. Freq: %4i. Xeng: %2i, 4 bit power: PolQ: %4.2f, PolI: %4.2f' % (hdr_index, unpkd_pkt['pkt_mcnt'], unpkd_pkt['pkt_ant'], unpkd_pkt['pkt_freq'], unpkd_pkt['pkt_xeng'], unpkd_pkt['rms_polQ'], unpkd_pkt['rms_polI'])
+                    print('HDR @ %4i. MCNT %12u. Ant: %3i. Freq: %4i. Xeng: %2i, 4 bit power: PolQ: %4.2f, PolI: %4.2f' % (hdr_index, unpkd_pkt['pkt_mcnt'], unpkd_pkt['pkt_ant'], unpkd_pkt['pkt_freq'], unpkd_pkt['pkt_xeng'], unpkd_pkt['rms_polQ'], unpkd_pkt['rms_polI']))
 
-                    if not report[f].has_key('Antenna%i' % unpkd_pkt['pkt_ant']):
+                    if 'Antenna%i' % unpkd_pkt['pkt_ant'] not in report[f]:
                         report[f]['Antenna%i' % unpkd_pkt['pkt_ant']] = 1
                     else:
                         report[f]['Antenna%i' % unpkd_pkt['pkt_ant']] += 1
 
-        rcvd_mcnts = mcnts[f].keys()
+        rcvd_mcnts = list(mcnts[f].keys())
         rcvd_mcnts.sort()
 
-        if opts.verbose: print '[%s] Received mcnts: ' % c.xsrvs[f], rcvd_mcnts
+        if opts.verbose: print('[%s] Received mcnts: ' % c.xsrvs[f], rcvd_mcnts)
         report[f]['min_pkt_latency'] = 99999999
         report[f]['max_pkt_latency'] = -1
 
@@ -237,7 +241,7 @@ try:
             if c.config['feng_out_type'] == 'xaui':
                 # simulate the reception of the loopback antenna's mcnts, but only for the x engines that actually have connected f engines:
                 if f < x_with_connected_cables:
-                    print 'Replacing antennas on FPGA %s for mcnt %i' % (c.xsrvs[f], mcnt)
+                    print('Replacing antennas on FPGA %s for mcnt %i' % (c.xsrvs[f], mcnt))
                     for a in range(base_ants[f][opts.core_n],base_ants[f][opts.core_n] + c.config['n_ants_per_xaui']):
                         mcnts[f][mcnt][a] = mcnts[f][mcnt].max()
 
@@ -247,31 +251,31 @@ try:
 
             # check to ensure that we received all data for each mcnt, by looking for any indices that weren't recorded:
             if mcnts[f][mcnt].min() < 0:
-                if not report[f].has_key('missing_mcnts'):  report[f]['missing_mcnts'] = [mcnt]
+                if 'missing_mcnts' not in report[f]:  report[f]['missing_mcnts'] = [mcnt]
                 else: report[f]['missing_mcnts'].append(mcnt)
                 if opts.verbose:
-                    print """[%s] We're missing data for mcnt %016i from antennas """ % (c.xsrvs[f], mcnt),
+                    print("""[%s] We're missing data for mcnt %016i from antennas """ % (c.xsrvs[f], mcnt), end=' ')
                     for ant in range(n_ants):
-                        if mcnts[f][mcnt][ant] < 0: print ant,
-                    print ''
+                        if mcnts[f][mcnt][ant] < 0: print(ant, end=' ')
+                    print('')
 
             # check the latencies in the mcnt values:
-            if opts.verbose: print '[%s] MCNT: %i. Max: %i, Min: %i. Diff: %i' % (c.xsrvs[f], mcnt, max_mcnt, min_mcnt, max_mcnt - min_mcnt)
+            if opts.verbose: print('[%s] MCNT: %i. Max: %i, Min: %i. Diff: %i' % (c.xsrvs[f], mcnt, max_mcnt, min_mcnt, max_mcnt - min_mcnt))
             if (max_mcnt - min_mcnt) > 0:
                 if report[f]['max_pkt_latency'] < (max_mcnt - min_mcnt) and min_mcnt >= 0: report[f]['max_pkt_latency'] = max_mcnt - min_mcnt
                 if report[f]['min_pkt_latency'] > (max_mcnt - min_mcnt) and min_mcnt >= 0: report[f]['min_pkt_latency'] = max_mcnt - min_mcnt
 
-    print '\n\nDone with all servers.\nSummary:\n=========================='
-    for k, r in report.iteritems():
-        keys = report[k].keys()
+    print('\n\nDone with all servers.\nSummary:\n==========================')
+    for k, r in six.iteritems(report):
+        keys = list(report[k].keys())
         keys.sort()
         srvr = c.xsrvs[r['fpga_index']]
-        print '------------------------'
-        print srvr
-        print '------------------------'
+        print('------------------------')
+        print(srvr)
+        print('------------------------')
         for key in keys:
-            print key,': ', r[key]
-    print '=========================='
+            print(key,': ', r[key])
+    print('==========================')
 
 except KeyboardInterrupt:
     exit_clean()

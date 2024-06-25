@@ -3,10 +3,13 @@
 Author: Jason Manley
 Date: 2010-11-11"""
 
-import logging,corr,sys,Queue,katcp,time
+from __future__ import absolute_import
+from __future__ import print_function
+import logging,corr,sys,six.moves.queue,katcp,time
 from optparse import OptionParser
 from katcp.kattypes import request, return_reply, Float, Int, Str, Bool
 import struct, re, string
+import six
 
 logging.basicConfig(level=logging.WARN,
                     stream=sys.stderr,
@@ -65,8 +68,8 @@ class DeviceExampleServer(katcp.DeviceServer):
             return katcp.Message.reply("fail","... you haven't connected yet!")
         rcs=self.c.get_rcs()
         ret_line=[]
-        for e,r in rcs.iteritems():
-            for k,s in r.iteritems():
+        for e,r in six.iteritems(rcs):
+            for k,s in six.iteritems(r):
                 ret_line.append('%s:%s:%s'%(e,k,s))
                 self.reply_inform(sock, katcp.Message.inform(orgmsg.name,ret_line[-1]),orgmsg)
         return ("ok",len(ret_line))
@@ -102,12 +105,12 @@ class DeviceExampleServer(katcp.DeviceServer):
         if self.c is None:
             return ("fail","... you haven't connected yet!")
 
-        print "\nlog:"
+        print("\nlog:")
         self.lh.printMessages()
 
         for logent in self.c.log_handler._records:
             if logent.exc_info:
-                print '%s: %s Exception: '%(logent.name,logent.msg),logent.exc_info[0:-1]
+                print('%s: %s Exception: '%(logent.name,logent.msg),logent.exc_info[0:-1])
                 self.reply_inform(sock, katcp.Message.inform("log",'%s: %s Exception: '%(logent.name,logent.msg),logent.exc_info[0:-1]),orgmsg)        
             else:
 #log error 1234567 basic "the error string"
@@ -331,9 +334,9 @@ class DeviceExampleServer(katcp.DeviceServer):
             return katcp.Message.reply(orgmsg.name,"fail","... you haven't connected yet!")
         try:
             stat=self.c.check_all(details=True)
-            for l,v in stat.iteritems():
+            for l,v in six.iteritems(stat):
                 ret_line=[]
-                for k,s in v.iteritems():
+                for k,s in six.iteritems(v):
                     ret_line.append('%s:%s'%(k,s)) 
                 self.reply_inform(sock, katcp.Message.inform(orgmsg.name,str(l),*ret_line),orgmsg)
             return katcp.Message.reply(orgmsg.name,"ok",len(stat))
@@ -377,7 +380,7 @@ class DeviceExampleServer(katcp.DeviceServer):
                 if not ant_str in self.c.config._get_ant_mapping_list(): 
                     return katcp.Message.reply(orgmsg.name,"fail","Antenna not found. Valid entries are %s."%str(self.c.config._get_ant_mapping_list()))
             snap_data=self.c.get_adc_snapshots(ant_strs,trig_level=trig_level,sync_to_pps=sync_to_pps)
-            for ant_str,data in snap_data.iteritems():
+            for ant_str,data in six.iteritems(snap_data):
                 self.reply_inform(sock,katcp.Message.inform(orgmsg.name,ant_str,str(data['timestamp']*1000),str(data['offset']),*data['data']),orgmsg)
             return katcp.Message.reply(orgmsg.name,'ok',str(len(snap_data)))
         except:
@@ -407,14 +410,14 @@ class DeviceExampleServer(katcp.DeviceServer):
             if not (ant_str in self.c.config._get_ant_mapping_list()): 
                 return katcp.Message.reply(orgmsg.name,"fail","Antenna not found. Valid entries are: %s"%str(self.c.config._get_ant_mapping_list()))
             unpackedBytes=self.c.get_quant_snapshot(ant_str,n_spectra)
-            print 'N spectra: %i.'%n_spectra
-            print unpackedBytes
+            print('N spectra: %i.'%n_spectra)
+            print(unpackedBytes)
             if n_spectra == 1: 
                 self.reply_inform(sock, katcp.Message.inform(orgmsg.name,*(['%i+%ij'%(val.real,val.imag) for val in unpackedBytes[0]])),orgmsg)
             elif n_spectra >1:
                 for s_n,spectrum in enumerate(unpackedBytes):
                     #print 'Sending inform %i:'%s,unpackedBytes[s]
-                    print 'trying to send the array:', ['%i+%ij'%(val.real,val.imag) for val in unpackedBytes[0][s_n]]
+                    print('trying to send the array:', ['%i+%ij'%(val.real,val.imag) for val in unpackedBytes[0][s_n]])
                     self.reply_inform(sock, katcp.Message.inform(orgmsg.name,*(['%i+%ij'%(val.real,val.imag) for val in unpackedBytes[0][s_n]])),orgmsg)
             else:
                 raise RuntimeError("Please specify the number of spectra to be greater than zero!")
@@ -433,7 +436,7 @@ class DeviceExampleServer(katcp.DeviceServer):
             if running:
                 self.c.tx_stop()
             act_period=self.c.acc_time_set(acc_time)
-            print 'Set act time to %f'%act_period
+            print('Set act time to %f'%act_period)
             if running:
                 self.c.tx_start()
             return ("ok",act_period)
@@ -447,7 +450,7 @@ class DeviceExampleServer(katcp.DeviceServer):
         if self.c is None:
             return ("fail","... you haven't connected yet!")
         amps=self.c.adc_amplitudes_get()
-        for ant_str,ampl in amps.iteritems():
+        for ant_str,ampl in six.iteritems(amps):
 #            rf_level=amps[i]['rms_dbm'] - self.c.rf_status_get(i)[1] 
             if self.c.feng_status_get(ant_str)['adc_disabled']==True:
                 stat = 'disabled'
@@ -608,32 +611,32 @@ if __name__ == "__main__":
     parser = OptionParser(usage=usage)
     parser.add_option('-a', '--host', dest='host', type="string", default="", metavar='HOST',
                       help='listen to HOST (default="" - all hosts)')
-    parser.add_option('-p', '--port', dest='port', type=long, default=1235, metavar='N',
+    parser.add_option('-p', '--port', dest='port', type=int, default=1235, metavar='N',
                       help='attach to port N (default=1235)')
     (opts, args) = parser.parse_args()
 
-    print "Server listening on port %d, Ctrl-C to terminate server" % opts.port
-    restart_queue = Queue.Queue()
+    print("Server listening on port %d, Ctrl-C to terminate server" % opts.port)
+    restart_queue = six.moves.queue.Queue()
     server = DeviceExampleServer(opts.host, opts.port)
     server.set_restart_queue(restart_queue)
 
     server.start()
-    print "Started."
+    print("Started.")
 
     try:
         while True:
             try:
                 device = restart_queue.get(timeout=0.5)
-            except Queue.Empty:
+            except six.moves.queue.Empty:
                 device = None
             if device is not None:
-                print "Stopping ..."
+                print("Stopping ...")
                 device.stop()
                 device.join()
-                print "Restarting ..."
+                print("Restarting ...")
                 device.start()
-                print "Started."
+                print("Started.")
     except KeyboardInterrupt:
-        print "Shutting down ..."
+        print("Shutting down ...")
         server.stop()
         server.join()

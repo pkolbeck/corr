@@ -5,11 +5,15 @@ Grabs the contents of "snap_gbe_tx" from F engines for analysis. This is for 10G
 Assumes the correlator is already initialsed and running etc.
 
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging
+import six
+from six.moves import range
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -123,14 +127,14 @@ if __name__ == '__main__':
     verbose = opts.verbose
 
     if not (opts.engine == 'x' or opts.engine == 'f'):
-        print 'Can only choose F- or X-engines. (x or f)'
+        print('Can only choose F- or X-engines. (x or f)')
         exit_fail()
 
 try:        
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
 
     if opts.man_trigger:
         man_ctrl = (1<<1)+1
@@ -139,7 +143,7 @@ try:
     if opts.raw:
         man_ctrl += (1<<2)
 
-    print '------------------------'
+    print('------------------------')
 
     dev_name = 'snap_gbe_tx%i' % opts.core_n
     binary_point = c.config['feng_fix_pnt_pos']
@@ -150,17 +154,17 @@ try:
     n_xengs = c.config['n_xeng']
     n_ants_per_ibob=c.config['n_ants_per_xaui']
 
-    print 'Grabbing and unpacking snap data... ',
+    print('Grabbing and unpacking snap data... ', end=' ')
     if opts.engine == 'x':
         servers = c.xsrvs
         snap_data = corr.snap.get_gbe_tx_snapshot_xeng(c)
     elif opts.engine == 'f':
         servers = c.fsrvs
         snap_data = corr.snap.get_gbe_tx_snapshot_feng(c)
-    print 'done.'
+    print('done.')
 
     report = dict()
-    print 'Analysing packets:'
+    print('Analysing packets:')
     for s in snap_data:
         f = s['fpga_index']
         report[f] = dict()
@@ -172,34 +176,34 @@ try:
         for i in range(len(s['data'])):
             if opts.verbose or opts.raw:
                 pkt_64bit = s['data'][i].data
-                print '[%s] IDX: %i Contents: %016x' % (servers[f], i, pkt_64bit),
-                print '[%s]' % corr.corr_functions.ip2str(s['data'][i].ip_addr),
-                if s['data'][i].valid: print '[valid]',
-                if s['data'][i].link_up: print '[link up]',
-                if s['data'][i].led_tx: print '[led tx]',
-                if s['data'][i].tx_full: print '[TX buffer full]',
-                if s['data'][i].tx_over: print '[TX buffer OVERFLOW]',
-                if s['data'][i].eof: print '[EOF]',
-                print ''
+                print('[%s] IDX: %i Contents: %016x' % (servers[f], i, pkt_64bit), end=' ')
+                print('[%s]' % corr.corr_functions.ip2str(s['data'][i].ip_addr), end=' ')
+                if s['data'][i].valid: print('[valid]', end=' ')
+                if s['data'][i].link_up: print('[link up]', end=' ')
+                if s['data'][i].led_tx: print('[led tx]', end=' ')
+                if s['data'][i].tx_full: print('[TX buffer full]', end=' ')
+                if s['data'][i].tx_over: print('[TX buffer OVERFLOW]', end=' ')
+                if s['data'][i].eof: print('[EOF]', end=' ')
+                print('')
 
             if s['data'][i].eof and not opts.raw:
                 pkt_ip_str = corr.corr_functions.ip2str(s['data'][i].ip_addr)
-                print '[%s] EOF at %4i. Dest: %12s. Len: %3i. ' % (servers[f], i, pkt_ip_str, i - prev_eof_index),
+                print('[%s] EOF at %4i. Dest: %12s. Len: %3i. ' % (servers[f], i, pkt_ip_str, i - prev_eof_index), end=' ')
                 report[f]['pkt_total'] += 1
                 hdr_index = prev_eof_index + 1
                 pkt_len = i - prev_eof_index
                 prev_eof_index = i
 
-                if not report[f].has_key('dest_ips'):
+                if 'dest_ips' not in report[f]:
                     report[f].update({'dest_ips':{pkt_ip_str:1}})
-                elif report[f]['dest_ips'].has_key(pkt_ip_str):
+                elif pkt_ip_str in report[f]['dest_ips']:
                     report[f]['dest_ips'][pkt_ip_str] += 1
                 else:
                     report[f]['dest_ips'].update({pkt_ip_str:1})
 
                 if pkt_len != packet_len + 1:
-                    print 'Malformed Fengine Packet'
-                    if not report[f].has_key('Malformed F-engine Packets'):
+                    print('Malformed Fengine Packet')
+                    if 'Malformed F-engine Packets' not in report[f]:
                         report[f]['Malformed F-engine Packets'] = 1
                     else:
                         report[f]['Malformed F-engine Packets'] += 1
@@ -212,24 +216,24 @@ try:
                     #    mcnts[f][feng_unpkd_pkt['pkt_mcnt']]=numpy.zeros(n_ants,numpy.int)
                     #    mcnts[f][feng_unpkd_pkt['pkt_mcnt']][feng_unpkd_pkt['pkt_ant']]=i
                     #print mcnts
-                    print 'HDR @ %4i. MCNT %12u. Freq: %4i (X:%i). Ant: %3i. 4 bit power: PolQ: %4.2f, PolI: %4.2f' % (hdr_index, feng_unpkd_pkt['pkt_mcnt'], feng_unpkd_pkt['pkt_freq'],feng_unpkd_pkt['exp_xeng'], feng_unpkd_pkt['pkt_ant'], feng_unpkd_pkt['rms_polQ'], feng_unpkd_pkt['rms_polI'])
+                    print('HDR @ %4i. MCNT %12u. Freq: %4i (X:%i). Ant: %3i. 4 bit power: PolQ: %4.2f, PolI: %4.2f' % (hdr_index, feng_unpkd_pkt['pkt_mcnt'], feng_unpkd_pkt['pkt_freq'],feng_unpkd_pkt['exp_xeng'], feng_unpkd_pkt['pkt_ant'], feng_unpkd_pkt['rms_polQ'], feng_unpkd_pkt['rms_polI']))
 
-                    if not report[f].has_key('Antenna%i' % feng_unpkd_pkt['pkt_ant']):
+                    if 'Antenna%i' % feng_unpkd_pkt['pkt_ant'] not in report[f]:
                         report[f]['Antenna%i' % feng_unpkd_pkt['pkt_ant']] = 1
                     else:
                         report[f]['Antenna%i' % feng_unpkd_pkt['pkt_ant']] += 1
 
-    print '\n\nDone with all servers.\nSummary:\n=========================='
-    for k, r in report.iteritems():
-        keys = report[k].keys()
+    print('\n\nDone with all servers.\nSummary:\n==========================')
+    for k, r in six.iteritems(report):
+        keys = list(report[k].keys())
         keys.sort()
         srvr = servers[r['fpga_index']]
-        print '------------------------'
-        print srvr
-        print '------------------------'
+        print('------------------------')
+        print(srvr)
+        print('------------------------')
         for key in keys:
-            print key,': ', r[key]
-    print '=========================='
+            print(key,': ', r[key])
+    print('==========================')
 
 except KeyboardInterrupt:
     exit_clean()

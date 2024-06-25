@@ -10,7 +10,10 @@ Revisions:
 
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import struct, time, math
+from six.moves import range
 
 def xeng_encode(freq,n_xeng=8, n_chans=2048,adc_clk=600,ddc_decimation=4,ddc_mix_freq=0.25):
     bandwidth = adc_clk/ddc_decimation
@@ -31,7 +34,7 @@ def xeng_encode(freq,n_xeng=8, n_chans=2048,adc_clk=600,ddc_decimation=4,ddc_mix
 def xeng_decode(x_eng,chan,n_xeng=8, n_chans=2048,adc_clk=600,ddc_decimation=4,ddc_mix_freq=0.25):    
     bandwidth = float(adc_clk)/ddc_decimation
     chan_bw = bandwidth/n_chans
-    print chan_bw
+    print(chan_bw)
     center_freq = float(adc_clk)*ddc_mix_freq
     start_freq = center_freq - bandwidth/2
     freq_offset = x_eng * chan_bw

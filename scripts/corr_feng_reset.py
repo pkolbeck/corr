@@ -3,11 +3,13 @@
 Reset ALL THE THINGS!
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, sys, logging, time
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',lh.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',lh.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -33,14 +35,14 @@ if __name__ == '__main__':
 
 lh = corr.log_handlers.DebugLogHandler(100)
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.INFO, connect = False, log_handler = lh)
     c.connect()
-    print 'done'
+    print('done')
 
-    print 'Pulsing reset line...',
+    print('Pulsing reset line...', end=' ')
     c.feng_ctrl_set_all(sys_rst = 'pulse')
-    print 'done.'
+    print('done.')
 
 except KeyboardInterrupt:
     exit_clean()

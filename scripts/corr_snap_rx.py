@@ -8,12 +8,16 @@ Rev:
 2012-01-09  JRM Only good for one interface per xengine.
 '''
 
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging
+import six
+from six.moves import range
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n'
+    print('FAILURE DETECTED. Log entries:\n')
     c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -121,17 +125,17 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:
-    print 'Connecting... ',
+    print('Connecting... ', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file,log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done.'
+    print('done.')
 
-    print '------------------------'
+    print('------------------------')
 
-    print 'Grabbing and unpacking snap data... ',
+    print('Grabbing and unpacking snap data... ', end=' ')
     snap_data = corr.snap.get_rx_snapshot(c)
     # returns an array, indexed from zero - but the elements are dictionaries that know their fpga's index
-    print 'done.'
+    print('done.')
 
     servers = c.xsrvs
     fpgas = c.xfpgas
@@ -145,17 +149,17 @@ try:
     if opts.verbose:
         for s in snap_data:
             for l in range(len(s['data'])):
-                print '[%s]' % (servers[s['fpga_index']]),
-                print 'IDX: %6i IP: %s. MCNT: %6i. ANT: %4i.  Contents: %016x' % (l, corr.corr_functions.ip2str(s['data'][l].ip_addr), s['data'][l].mcnt, s['data'][l].ant, s['data'][l].data),
-                if s['data'][l].valid: print '[VALID]',
-                if s['data'][l].flag: print '[FLAG BAD]',
-                if s['data'][l].gbe_ack: print '[GBE]',
-                if s['data'][l].loop_ack: print '[Loop]',
-                if s['data'][l].eof: print '[EOF]',
-                print ''
+                print('[%s]' % (servers[s['fpga_index']]), end=' ')
+                print('IDX: %6i IP: %s. MCNT: %6i. ANT: %4i.  Contents: %016x' % (l, corr.corr_functions.ip2str(s['data'][l].ip_addr), s['data'][l].mcnt, s['data'][l].ant, s['data'][l].data), end=' ')
+                if s['data'][l].valid: print('[VALID]', end=' ')
+                if s['data'][l].flag: print('[FLAG BAD]', end=' ')
+                if s['data'][l].gbe_ack: print('[GBE]', end=' ')
+                if s['data'][l].loop_ack: print('[Loop]', end=' ')
+                if s['data'][l].eof: print('[EOF]', end=' ')
+                print('')
     report = dict()
     mcnts = dict()
-    print 'Analysing packets:'
+    print('Analysing packets:')
     for s in snap_data:
         f = s['fpga_index']
         report[f] = dict()
@@ -167,19 +171,19 @@ try:
 
         for i in range(len(s['data'])):
             if opts.verbose:
-                print ' [%s]' % (servers[s['xfpga_index']]),
-                print 'IDX: %6i IP: %s. MCNT: %6i. FREQ: %5i. ANT: %4i.  Contents: %016x' % (i, 
+                print(' [%s]' % (servers[s['xfpga_index']]), end=' ')
+                print('IDX: %6i IP: %s. MCNT: %6i. FREQ: %5i. ANT: %4i.  Contents: %016x' % (i, 
                     corr.corr_functions.ip2str(s['data'][i].ip_addr), 
                     s['data'][i].mcnt, 
                     s['data'][i].mcnt%n_chans,
                     s['data'][i].ant, 
-                    s['data'][i].data),
-                if s['data'][i].valid: print '[VALID]',
-                if s['data'][i].flag: print '[FLAG BAD]',
-                if s['data'][i].gbe_ack: print '[GBE]',
-                if s['data'][i].loop_ack: print '[Loop]',
-                if s['data'][i].eof: print '[EOF!]',
-                print ''
+                    s['data'][i].data), end=' ')
+                if s['data'][i].valid: print('[VALID]', end=' ')
+                if s['data'][i].flag: print('[FLAG BAD]', end=' ')
+                if s['data'][i].gbe_ack: print('[GBE]', end=' ')
+                if s['data'][i].loop_ack: print('[Loop]', end=' ')
+                if s['data'][i].eof: print('[EOF!]', end=' ')
+                print('')
 
             if s['data'][i].eof:
                 pkt_ip_str = corr.corr_functions.ip2str(s['data'][i].ip_addr)
@@ -189,17 +193,17 @@ try:
                 hdr_index = prev_eof_index + 1
                 pkt_len = i - prev_eof_index
 
-                print '[%s] EOF at %4i. IP: %12s. MCNT: %6i. Freq: %4i ANT: %4i. Len: %3i. ' % (servers[f], i, pkt_ip_str, pkt_mcnt, pkt_freq, pkt_ant, pkt_len),
-                if s['data'][hdr_index].gbe_ack: print '[GBE]',
-                if s['data'][hdr_index].loop_ack: print '[Loop]',
+                print('[%s] EOF at %4i. IP: %12s. MCNT: %6i. Freq: %4i ANT: %4i. Len: %3i. ' % (servers[f], i, pkt_ip_str, pkt_mcnt, pkt_freq, pkt_ant, pkt_len), end=' ')
+                if s['data'][hdr_index].gbe_ack: print('[GBE]', end=' ')
+                if s['data'][hdr_index].loop_ack: print('[Loop]', end=' ')
 
                 report[f]['pkt_total'] += 1
 
                 if prev_eof_index > 0:
                     # Check to make sure the packet length is correct. Don't process if it's bad.
                     if pkt_len != packet_len:
-                        print '[BAD PKT LEN]'
-                        if not report[f].has_key('bad_pkt_len'):
+                        print('[BAD PKT LEN]')
+                        if 'bad_pkt_len' not in report[f]:
                             report[f]['bad_pkt_len'] = {'cnt': 1, 'bad_mcnts':[pkt_mcnt]}
                         else:
                             report[f]['bad_pkt_len']['cnt'] += 1
@@ -210,8 +214,8 @@ try:
                         first_mcnt = s['data'][hdr_index].mcnt
                         for pkt_index in range(hdr_index, hdr_index + pkt_len):
                             if first_mcnt != s['data'][pkt_index].mcnt:
-                                print '[MCNT ERR]',
-                                if not report[f].has_key('mcnt_errors'):
+                                print('[MCNT ERR]', end=' ')
+                                if 'mcnt_errors' not in report[f]:
                                     report[f]['mcnt_errors'] = {'cnt':1, 'bad_mcnts':[pkt_mcnt]}
                                 else:
                                     report[f]['mcnt_errors']['cnt'] += 1
@@ -223,9 +227,9 @@ try:
                             mcnts[f][pkt_mcnt][pkt_ant] = i
                         #print mcnts
 
-                        if not report[f].has_key('src_ips'):
+                        if 'src_ips' not in report[f]:
                             report[f].update({'src_ips': {pkt_ip_str: 1}})
-                        elif report[f]['src_ips'].has_key(pkt_ip_str):
+                        elif pkt_ip_str in report[f]['src_ips']:
                             report[f]['src_ips'][pkt_ip_str] += 1
                         else:
                             report[f]['src_ips'].update({pkt_ip_str: 1})
@@ -236,18 +240,18 @@ try:
                             mcnts[f][pkt_mcnt][pkt_ant] = i
                         #print mcnts
 
-                        print 'HDR @ %4i. 4 bit power: PolQ: %4.2f, PolI: %4.2f' % (hdr_index, feng_unpkd_pkt['rms_polQ'], feng_unpkd_pkt['rms_polI'])
+                        print('HDR @ %4i. 4 bit power: PolQ: %4.2f, PolI: %4.2f' % (hdr_index, feng_unpkd_pkt['rms_polQ'], feng_unpkd_pkt['rms_polI']))
 
-                        if not report[f].has_key('Antenna%02i'%pkt_ant):
+                        if 'Antenna%02i'%pkt_ant not in report[f]:
                             report[f]['Antenna%02i'%pkt_ant] = 1
                         else:
                             report[f]['Antenna%02i'%pkt_ant] += 1
-                else: print 'skipped first packet.'
+                else: print('skipped first packet.')
                 prev_eof_index = i
 
-        rcvd_mcnts = mcnts[f].keys()
+        rcvd_mcnts = list(mcnts[f].keys())
         rcvd_mcnts.sort()
-        if opts.verbose: print '[%s] Received mcnts: ' % servers[f], rcvd_mcnts
+        if opts.verbose: print('[%s] Received mcnts: ' % servers[f], rcvd_mcnts)
         report[f]['min_pkt_latency'] = 9999
         report[f]['max_pkt_latency'] = -1
         for i in rcvd_mcnts[1:-1]:
@@ -256,31 +260,31 @@ try:
 
             # check to ensure that we received all data for each mcnt:
             if mcnts[f][i].min() < 0:
-                if not report[f].has_key('missing_mcnts'):  report[f]['missing_mcnts'] = [i]
+                if 'missing_mcnts' not in report[f]:  report[f]['missing_mcnts'] = [i]
                 else: report[f]['missing_mcnts'].append(i)
                 if opts.verbose:
-                    print """[%s] We're missing data for mcnt %016i from antennas """ % (servers[f], i),
+                    print("""[%s] We're missing data for mcnt %016i from antennas """ % (servers[f], i), end=' ')
                     for ant in range(n_ants):
-                        if mcnts[f][i][ant] < 0: print ant,
-                    print ''
+                        if mcnts[f][i][ant] < 0: print(ant, end=' ')
+                    print('')
 
             # check the latencies in the mcnt values:
-            if opts.verbose: print '[%s] MCNT: %i. Max: %i, Min: %i. Diff: %i'%(servers[f],i,max_mcnt,min_mcnt,max_mcnt-min_mcnt)
+            if opts.verbose: print('[%s] MCNT: %i. Max: %i, Min: %i. Diff: %i'%(servers[f],i,max_mcnt,min_mcnt,max_mcnt-min_mcnt))
             if (max_mcnt-min_mcnt)>0:
                 if report[f]['max_pkt_latency']<(max_mcnt-min_mcnt) and min_mcnt>0: report[f]['max_pkt_latency']=max_mcnt-min_mcnt
                 if report[f]['min_pkt_latency']>(max_mcnt-min_mcnt) and min_mcnt>0: report[f]['min_pkt_latency']=max_mcnt-min_mcnt
 
-    print '\n\nDone with all servers.\nSummary:\n=========================='
-    for k, r in report.iteritems():
-        keys = report[k].keys()
+    print('\n\nDone with all servers.\nSummary:\n==========================')
+    for k, r in six.iteritems(report):
+        keys = list(report[k].keys())
         keys.sort()
         srvr = servers[r['fpga_index']]
-        print '------------------------'
-        print srvr
-        print '------------------------'
+        print('------------------------')
+        print(srvr)
+        print('------------------------')
         for key in keys:
-            print key,': ', r[key]
-    print '=========================='
+            print(key,': ', r[key])
+    print('==========================')
 
 
 except KeyboardInterrupt:

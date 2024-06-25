@@ -3,7 +3,10 @@
 Capture data from all coarse channels in a narrowband correlator mode. Must be initialised and EQ-set first.
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import logging, sys, time
+from six.moves import range
 
 logging.basicConfig(level = logging.WARN)
 
@@ -42,11 +45,11 @@ if not opts.plotonly:
 
     import corr, spead64_48 as spead
 
-    print 'Parsing config file...',
+    print('Parsing config file...', end=' ')
     sys.stdout.flush()
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if opts.verbose else logging.WARN, connect = False)
     c.connect()
-    print 'done.'
+    print('done.')
 
     # check for narrowband
     if not c.is_narrowband():
@@ -59,7 +62,7 @@ if not opts.plotonly:
     start_time = time.time()
     for channel in range(0, c.config['coarse_chans']):
         filename = 'channel_%03i.h5' % channel
-        print 'Writing data for channel %i to file %s.' % (channel, filename)
+        print('Writing data for channel %i to file %s.' % (channel, filename))
         sys.stdout.flush()
 
         # select the coarse channel and wait a bit
@@ -83,16 +86,16 @@ if not opts.plotonly:
                     timedout = True
                     raise Exception
                 time.sleep(0.2)
-            print 'RX process ended.'
+            print('RX process ended.')
             crx.join()
         except Exception:
             c.tx_stop()
             time.sleep(2)
-            print 'Timeout, moving to next channel.'
+            print('Timeout, moving to next channel.')
         except KeyboardInterrupt:
-            print 'Stopping.'
+            print('Stopping.')
 
-    print 'Done, wrote %i channels in %.3f seconds.' % (c.config['coarse_chans'], time.time() - start_time)
+    print('Done, wrote %i channels in %.3f seconds.' % (c.config['coarse_chans'], time.time() - start_time))
     c.disconnect_all()
 # end
 
@@ -119,7 +122,7 @@ if not opts.noplot:
     # check that the baseline exists
     baseline_str = baseline_to_tuple(f, opts.baseline)
     baseline = opts.baseline
-    print 'Processing baseline %i, %s' %(baseline, baseline_str)
+    print('Processing baseline %i, %s' %(baseline, baseline_str))
 
     x_phase = numpy.zeros(mdata['coarse_chans'] * (mdata['n_chans'] - 10))
     x_mag = numpy.zeros(mdata['coarse_chans'] * (mdata['n_chans'] - 10))
@@ -147,9 +150,9 @@ if not opts.noplot:
         x_phase[si:si+mdata['n_chans']-10] = numpy.angle(d[0:mdata['n_chans']-10])
         x_mag[si:si+mdata['n_chans']-10] = d[0:mdata['n_chans']-10]
         ctr += 1
-        print '.',
+        print('.', end=' ')
         sys.stdout.flush()
-    print ''
+    print('')
 
     # plot
     pylab.subplot(2,1,1)

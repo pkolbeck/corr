@@ -4,9 +4,11 @@
    @Revised 2012/09/13 first release
    """
 
+from __future__ import absolute_import
 import serial, logging, sys, time, os
 
 from katcp import *
+from six.moves import range
 log = logging.getLogger("katcp_gpio")
 
 

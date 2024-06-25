@@ -51,8 +51,12 @@ Revisions:
 2009-06-26  JRM UNDER CONSTRUCTION.
 \n"""
 
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, logging, struct, construct, socket, os
 import spead64_48 as spead
+import six
+from six.moves import range
 
 CORR_MODE_WB = 'wbc'
 CORR_MODE_NB = 'nbc'
@@ -78,7 +82,7 @@ def ip2str(pkt_ip, verbose = False):
     ip_1 = (pkt_ip & ((2**8)  - (2**0)))  >> 0
     ipstr = '%i.%i.%i.%i' % (ip_4, ip_3, ip_2, ip_1)
     if verbose:
-        print 'IP(%i) decoded to:' % pkt_ip, ipstr
+        print('IP(%i) decoded to:' % pkt_ip, ipstr)
     return ipstr
 
 def write_masked_register(device_list, bitstruct, names = None, **kwargs):
@@ -91,7 +95,7 @@ def write_masked_register(device_list, bitstruct, names = None, **kwargs):
     pulse_keys = []
     for c in currentValues:
         for key in kwargs:
-            if not c.__dict__.has_key(key):
+            if key not in c.__dict__:
                 raise RuntimeError('Attempting to write key %s but it doesn\'t exist in bitfield.' % key)
             if kwargs[key] == 'pulse':
                 if pulse_keys.count(key) == 0: pulse_keys.append(key)
@@ -157,9 +161,9 @@ def log_runtimeerror(logger, err):
 def non_blocking_request(fpgas, timeout, request, request_args):
     """Make a non-blocking request to one or more FPGAs, using the Asynchronous FPGA client.
     """
-    import Queue, threading
+    import six.moves.queue, threading
     verbose = False
-    reply_queue = Queue.Queue(maxsize=len(fpgas))
+    reply_queue = six.moves.queue.Queue(maxsize=len(fpgas))
     requests = {}
     # reply callback
     def reply_cb(host, request_id):
@@ -168,17 +172,17 @@ def non_blocking_request(fpgas, timeout, request, request_args):
         ## is the reply queue full?
         #if reply_queue.full():
         #    raise RuntimeError('Rx reply(%s) from host(%s), reply queue is full?' % (request_id, host))
-        if verbose: print 'Reply(%s) from host(%s)' % (request_id, host); sys.stdout.flush()
+        if verbose: print('Reply(%s) from host(%s)' % (request_id, host)); sys.stdout.flush()
         reply_queue.put_nowait([host, request_id])
     # start the requests
-    if verbose: print 'Send request(%s) to %i hosts.' % (request, len(fpgas))
+    if verbose: print('Send request(%s) to %i hosts.' % (request, len(fpgas)))
     lock = threading.Lock()
     for f in fpgas:
         lock.acquire()
         r = f._nb_request(request, None, reply_cb, *request_args)
         requests[r['host']] = [r['request'], r['id']]
         lock.release()
-        if verbose: print 'Request \'%s\' id(%s) to host(%s)' % (r['request'], r['id'], r['host']); sys.stdout.flush()
+        if verbose: print('Request \'%s\' id(%s) to host(%s)' % (r['request'], r['id'], r['host'])); sys.stdout.flush()
     # wait for replies from the requests
     replies = {}
     timedout = False
@@ -192,15 +196,15 @@ def non_blocking_request(fpgas, timeout, request, request_args):
         replies[it[0]] = it[1]
         if len(replies) == len(fpgas): done = True
     if timedout and verbose:
-        print replies
-        print "non_blocking_request timeout after %is." % timeout; sys.stdout.flush()
+        print(replies)
+        print("non_blocking_request timeout after %is." % timeout); sys.stdout.flush()
     rv = {}
     for f in fpgas:
         frv = {}
         try:
             request_id = replies[f.host]
         except:
-            print replies
+            print(replies)
             sys.stdout.flush()
             raise KeyError('Didn\'t get a reply for FPGA \'%s\' so the request \'%s\' probably didn\'t complete.' % (f.host, request))
         reply, informs = f._nb_get_request_result(request_id)
@@ -216,7 +220,7 @@ def non_blocking_request(fpgas, timeout, request, request_args):
     return (not timedout), (rv)
 
 katcp_prefix = '/'
-if os.environ.has_key('VIRTUAL_ENV'):
+if 'VIRTUAL_ENV' in os.environ:
     katcp_prefix = os.environ['VIRTUAL_ENV']
 default_config = os.path.join(katcp_prefix, 'etc/corr/default')
 class Correlator:
@@ -275,18 +279,18 @@ class Correlator:
         """Extracts and returns a dictionary of the version control information from the F and X engines."""
         try:
             frcs=self.ffpgas[0].get_rcs()
-            if frcs.has_key('user'):
+            if 'user' in frcs:
                 self.syslogger.info('F engines version %i found.'%frcs['user'])
-            if frcs.has_key('compile_timestamp'):
+            if 'compile_timestamp' in frcs:
                 self.syslogger.info('F engine bitstream was compiled at %s.'%time.ctime(frcs['compile_timestamp']))
-            if frcs.has_key('app_last_modified'):
+            if 'app_last_modified' in frcs:
                 self.syslogger.info('F engine bitstream was last modified on %s.'%time.ctime(frcs['app_last_modified']))
-            if frcs.has_key('lib_rcs_type'):
+            if 'lib_rcs_type' in frcs:
                 self.syslogger.info('F engine bitstream was compiled from %s DSP libraries, rev %0X %s.'%(
                     frcs['lib_rcs_type'],
                     frcs['lib_rev'],
                     ('DIRTY' if frcs['lib_dirty'] else 'CLEAN')))
-            if frcs.has_key('app_rcs_type'):
+            if 'app_rcs_type' in frcs:
                 self.syslogger.info('F engine bitstream was compiled from %s, rev %0X %s.'%(
                     frcs['app_rcs_type'],
                     frcs['app_rev'],
@@ -299,18 +303,18 @@ class Correlator:
                         self.floggers[fn].info("KATADC %i, rev %3.1f found on ZDOK port %i."%(adc_details['serial_number'],adc_details['pcb_rev']/10.0,an))
 
             xrcs=self.xfpgas[0].get_rcs()
-            if xrcs.has_key('user'):
+            if 'user' in xrcs:
                 self.syslogger.info('X engines version %i found.'%xrcs['user'])
-            if xrcs.has_key('compile_timestamp'):
+            if 'compile_timestamp' in xrcs:
                 self.syslogger.info('X engine bitstream was compiled at %s.'%time.ctime(xrcs['compile_timestamp']))
-            if xrcs.has_key('app_last_modified'):
+            if 'app_last_modified' in xrcs:
                 self.syslogger.info('X engine bitstream was last modified on %s.'%time.ctime(xrcs['app_last_modified']))
-            if xrcs.has_key('lib_rcs_type'):
+            if 'lib_rcs_type' in xrcs:
                 self.syslogger.info('X engine bitstream was compiled from %s DSP libraries, rev %0X %s.'%(
                     xrcs['lib_rcs_type'],
                     xrcs['lib_rev'],
                     ('DIRTY' if xrcs['lib_dirty'] else 'CLEAN')))
-            if xrcs.has_key('app_rcs_type'):
+            if 'app_rcs_type' in xrcs:
                 self.syslogger.info('X engine bitstream was compiled from %s, rev %0X %s.'%(
                     xrcs['app_rcs_type'],
                     xrcs['app_rev'],
@@ -518,13 +522,13 @@ class Correlator:
         """
         available_tvgs = self.feng_tvg_available_tvgs()
         if len(kwargs) == 0:
-            print 'No TVG given. Available f-engine TVGs in this mode are:'
-            print available_tvgs
+            print('No TVG given. Available f-engine TVGs in this mode are:')
+            print(available_tvgs)
             raise RuntimeError('No TVG specified.')
         elif len(kwargs) > 1:
             raise RuntimeError('Only one TVG can be turned on at a time.')
         matched = False
-        selected_tvg = kwargs.keys()[0]
+        selected_tvg = list(kwargs.keys())[0]
         newkwargs = {}
         allfalse = {}
         for t in available_tvgs:
@@ -534,8 +538,8 @@ class Correlator:
                 matched = True
                 newkwargs[t] = True
         if not matched:
-            print 'TVG \'%s\' doesn\'t exist. Available f-engine TVGs in this mode are:' % selected_tvg
-            print available_tvgs
+            print('TVG \'%s\' doesn\'t exist. Available f-engine TVGs in this mode are:' % selected_tvg)
+            print(available_tvgs)
             raise RuntimeError('Invalid TVG specified.')
         self.feng_ctrl_set_all(tvg_en = True, **newkwargs)
         self.feng_ctrl_set_all(tvg_en = False, **allfalse)
@@ -1191,7 +1195,7 @@ class Correlator:
         rv.update(self.feng_status_get_all())
         rv.update(self.xeng_status_get_all())
 
-        for b,s in rv.iteritems():
+        for b,s in six.iteritems(rv):
             if s['lru_state']=='fail': rv['sys']['lru_state']='warn'
 
         if clock_check:
@@ -1391,7 +1395,7 @@ class Correlator:
         # wait until the time has elapsed
         sleep_time = self.time_from_mcnt(mcnt_ld) - self.time_from_mcnt(mcnt_before) + network_latency_adjust
         self.floggers[ffpga_n].debug('waiting %2.3f seconds (now: %i, ldtime: %i)' % (sleep_time, self.time_from_mcnt(mcnt_ld), self.time_from_mcnt(mcnt_before)))
-        print 'waiting %2.3f seconds (now: %i, ldtime: %i)' % (sleep_time, self.time_from_mcnt(mcnt_ld), self.time_from_mcnt(mcnt_before))
+        print('waiting %2.3f seconds (now: %i, ldtime: %i)' % (sleep_time, self.time_from_mcnt(mcnt_ld), self.time_from_mcnt(mcnt_before)))
         sys.stdout.flush()
         time.sleep(sleep_time)
 
@@ -1399,8 +1403,8 @@ class Correlator:
         delay_fr_status_after = self.ffpgas[ffpga_n].read_uint('delay_tr_status%i' % feng_input)
         arm_count_after = delay_fr_status_after >> 16
         ld_count_after = delay_fr_status_after & 0xffff
-        print 'BEFORE: delay_fr_status(%15i) arm_count(%10i) ld_count(%10i)' % (delay_fr_status_before, arm_count_before, ld_count_before, )
-        print 'AFTER:  delay_fr_status(%15i) arm_count(%10i) ld_count(%10i)' % (delay_fr_status_after, arm_count_after, ld_count_after, )
+        print('BEFORE: delay_fr_status(%15i) arm_count(%10i) ld_count(%10i)' % (delay_fr_status_before, arm_count_before, ld_count_before, ))
+        print('AFTER:  delay_fr_status(%15i) arm_count(%10i) ld_count(%10i)' % (delay_fr_status_after, arm_count_after, ld_count_after, ))
 
         # did the system arm?
         if (arm_count_before == arm_count_after):
@@ -1412,8 +1416,8 @@ class Correlator:
         # did the system arm but not load?
         if (ld_count_before >= ld_count_after):
             mcnt_after = self.mcnt_current_get(ant_str)
-            print 'MCNT: before: %10i, target: %10i, after: %10i, after-target(%10i)' % (mcnt_before, mcnt_ld, mcnt_after, mcnt_after - mcnt_ld, )
-            print 'TIME: before: %10.3f, target: %10.3f, after: %10.3f, after-target(%10.3f)' % (self.time_from_mcnt(mcnt_before), self.time_from_mcnt(mcnt_ld), self.time_from_mcnt(mcnt_after), self.time_from_mcnt(mcnt_after - mcnt_ld), )
+            print('MCNT: before: %10i, target: %10i, after: %10i, after-target(%10i)' % (mcnt_before, mcnt_ld, mcnt_after, mcnt_after - mcnt_ld, ))
+            print('TIME: before: %10.3f, target: %10.3f, after: %10.3f, after-target(%10.3f)' % (self.time_from_mcnt(mcnt_before), self.time_from_mcnt(mcnt_ld), self.time_from_mcnt(mcnt_after), self.time_from_mcnt(mcnt_after - mcnt_ld), ))
             if mcnt_after > mcnt_ld:
                 log_runtimeerror(self.floggers[ffpga_n], 'We missed loading the registers by about %4.1f ms.' % ((mcnt_after - mcnt_ld)/self.config['mcnt_scale_factor']*1000.0))
             else:
@@ -1468,7 +1472,7 @@ class Correlator:
         if (ld_mcnt < (mcnt + self.config['mcnt_scale_factor']*min_ld_time)):
             raise RuntimeError("fr_delay_set_all - This works out to a loadtime in the past!")
 
-        for ant_str,ant_coeffs in coeffs.iteritems():
+        for ant_str,ant_coeffs in six.iteritems(coeffs):
             locs.append(self.get_ant_str_location(ant_str))
             ffpga_n,xfpga_n,fxaui_n,xxaui_n,feng_input = locs[-1]
 
@@ -1838,12 +1842,12 @@ class Correlator:
             return rv
 
         def print_vacc_status(data):
-            print '\n***************************'
+            print('\n***************************')
             for key, server in data.items():
-                print 'Xeng_fpga(%s, %i):' % (key, server['xfpga_number'])
+                print('Xeng_fpga(%s, %i):' % (key, server['xfpga_number']))
                 for xeng in server['xengs']:
-                    print '\txeng(%i) xeng_index(%i) arm_cnt(%i) ld_cnt(%i)' % (xeng['xeng_number'], xeng['xeng_index'], xeng['arm_cnt'], xeng['ld_cnt'])
-            print '***************************\n'
+                    print('\txeng(%i) xeng_index(%i) arm_cnt(%i) ld_cnt(%i)' % (xeng['xeng_number'], xeng['xeng_index'], xeng['arm_cnt'], xeng['ld_cnt']))
+            print('***************************\n')
 
         # read the vacc status registers before syncing
         vacc_status_before = load_vacc_status(self)
@@ -1856,7 +1860,7 @@ class Correlator:
                     reset_required = True
         # reset the vaccs if any were out of alignment
         if reset_required:
-            print 'Resetting vaccs...'
+            print('Resetting vaccs...')
             self.rst_vaccs()
             vacc_status_before = load_vacc_status(self)
             for k, s in vacc_status_before.items():
@@ -1879,7 +1883,7 @@ class Correlator:
         if pcnt_ld <= pcnt_before:
             log_runtimeerror(self.syslogger, "Error occurred. Cannot load at a time in the past.")
         if pcnt_ld > ((2**48)-1):
-            print 'Warning: the 48-bit pcnt has wrapped!'
+            print('Warning: the 48-bit pcnt has wrapped!')
             self.syslogger.warning("Looks like the 48bit pcnt has wrapped.")
             pcnt_ld = pcnt_ld & 0xffffffffffff
 
@@ -2089,7 +2093,7 @@ class Correlator:
 
         elif self.config['eq_default'] == 'poly':
             poly = self.config['eq_poly_%i' % (input_n)]
-            equalisation = numpy.polyval(poly, range(self.config['n_chans']))[self.config['eq_decimation']/2::self.config['eq_decimation']]
+            equalisation = numpy.polyval(poly, list(range(self.config['n_chans'])))[self.config['eq_decimation']/2::self.config['eq_decimation']]
             if self.config['eq_type'] == 'complex':
                 equalisation = [eq+0*1j for eq in equalisation]
         else:
@@ -2151,7 +2155,7 @@ class Correlator:
         elif len(init_coeffs)>0:
             raise RuntimeError ('You specified %i coefficients, but there are %i EQ coefficients in this design.'%(len(init_coeffs),n_coeffs))
         else:
-            coeffs = numpy.polyval(init_poly, range(self.config['n_chans']))[self.config['eq_decimation']/2::self.config['eq_decimation']]
+            coeffs = numpy.polyval(init_poly, list(range(self.config['n_chans'])))[self.config['eq_decimation']/2::self.config['eq_decimation']]
 
         if self.config['eq_type'] == 'scalar':
             coeffs = numpy.real(coeffs)

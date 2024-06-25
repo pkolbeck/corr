@@ -1,4 +1,6 @@
-import katcp_wrapper
+from __future__ import absolute_import
+from . import katcp_wrapper
+from six.moves import range
 
 def fpga_operation(fpga_list, num_threads = -1, job_function = None, *job_args):
     """Run a provided method on a list of FpgaClient objects in a specified number of threads.
@@ -26,7 +28,7 @@ def fpga_operation(fpga_list, num_threads = -1, job_function = None, *job_args):
 
     if job_function == None:
         raise RuntimeError("job_function == None?")
-    import threading, Queue
+    import threading, six.moves.queue
     # thread class to perform a job from a queue
     class Corr_worker(threading.Thread):
         def __init__(self, request_queue, result_queue, job_function, *job_args):
@@ -45,7 +47,7 @@ def fpga_operation(fpga_list, num_threads = -1, job_function = None, *job_args):
                     try:
                         result = self.job(request_host, *self.job_args)
                     except Exception as exc:
-                        errstr = "Job %s internal error: %s, %s" % (self.job.func_name, type(exc), exc)
+                        errstr = "Job %s internal error: %s, %s" % (self.job.__name__, type(exc), exc)
                         result = RuntimeError(errstr)
                     # put the result on the result queue
                     self.result_queue.put((request_host.host, result))
@@ -58,8 +60,8 @@ def fpga_operation(fpga_list, num_threads = -1, job_function = None, *job_args):
     if num_threads == -1:
         num_threads = len(fpga_list)
     # create the request and result queues
-    request_queue = Queue.Queue()
-    result_queue = Queue.Queue()
+    request_queue = six.moves.queue.Queue()
+    result_queue = six.moves.queue.Queue()
     # put the list items into a Thread-safe Queue
     for f in fpga_list:
         if not isinstance(f, katcp_wrapper.FpgaClient):

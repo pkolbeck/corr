@@ -2,10 +2,12 @@
 """
 Resets the 10GbE cores on all X engines through fabric rst port toggle.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     c.log_handler.printMessages()
     try:
         c.disconnect_all()
@@ -37,12 +39,12 @@ if __name__ == '__main__':
     verbose = False
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
 
-    print('\nResetting GBE cores...'),
+    print(('\nResetting GBE cores...'), end=' ')
     sys.stdout.flush()
 
     #DO NOT RESET THE 10GBE CORES SYNCHRONOUSLY!
@@ -57,7 +59,7 @@ try:
     c.xeng_ctrl_set_all(gbe_enable = False, gbe_rst = False)
     c.xeng_ctrl_set_all(gbe_enable = True,  gbe_rst = False)
 
-    print 'done.'
+    print('done.')
 
 except KeyboardInterrupt:
     exit_clean()

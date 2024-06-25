@@ -9,7 +9,9 @@ Revs:
                 Added left, right page controls
 """
 
+from __future__ import absolute_import
 import curses, types
+from six.moves import range
 
 def screen_teardown():
     '''Restore sensible options to the terminal upon exit
@@ -131,7 +133,7 @@ class Scroll(object):
             # truncate long lines and add the data to the screen
             if (lineattrs == None):# or (len(lineattrs) !=  len(data)):
                 attr = [curses.A_NORMAL]
-            elif (type(lineattrs[line_num]) ==  types.ListType):
+            elif (type(lineattrs[line_num]) ==  list):
                 attr = lineattrs[line_num]
             else:
                 attr = [lineattrs[line_num]]

@@ -12,12 +12,15 @@ Revisions:\n
 2010-07-29: PVP Cleanup as part of the move to ROACH F-Engines. Testing still needed.\n
 2009------: JRM Initial revision.\n
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, pylab, struct, sys, logging
+from six.moves import range
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -66,10 +69,10 @@ if __name__ == '__main__':
         raise RuntimeError('Expected 0 or 1 for option -s.')
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO,connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
     binary_point = c.config['feng_fix_pnt_pos']
     packet_len = c.config['10gbe_pkt_len']
@@ -93,7 +96,7 @@ try:
         xeng_fpga = xeng_num / 2
         fpgas = [c.xfpgas[xeng_fpga]]
         offset_bytes = ((opts.channel - (xeng_num * n_chans_per_x)) * n_bls) * 4 * 2
-        print 'Channel %i found on fpga %i, x-engine %i' % (opts.channel, xeng_num, xeng_fpga)
+        print('Channel %i found on fpga %i, x-engine %i' % (opts.channel, xeng_num, xeng_fpga))
     else:
         if opts.xfpga == -1: fpgas = c.xfpgas
         else: fpgas = [c.xfpgas[opts.xfpga]]
@@ -103,37 +106,37 @@ try:
             offset_bytes = opts.ch_offset * n_bls * 4 * 2
 
     if num_bits != 4:
-        print 'ERR: this script is only written to interpret 4 bit data. Your F engine outputs %i bits.' % num_bits
+        print('ERR: this script is only written to interpret 4 bit data. Your F engine outputs %i bits.' % num_bits)
         exit_fail()
     if xeng_acc_len != 128:
-        print 'ERR: this script is only written to interpret data from X engines with acc length of 128 due to hardcoded bitwidth growth limitations. Your X engine accumulates for %i samples.'%xeng_acc_len
+        print('ERR: this script is only written to interpret data from X engines with acc length of 128 due to hardcoded bitwidth growth limitations. Your X engine accumulates for %i samples.'%xeng_acc_len)
         exit_fail()
 
 
-    print '------------------------'
-    print 'Triggering capture at byte offset %i...' % (offset_bytes),
+    print('------------------------')
+    print('Triggering capture at byte offset %i...' % (offset_bytes), end=' ')
     sys.stdout.flush()
     bram_dmp = corr.snap.snapshots_get(fpgas, dev_name, man_trig = False, wait_period = acc_time*2, offset = offset_bytes)
-    print 'done.'
+    print('done.')
 
-    print 'Unpacking bram contents...'
+    print('Unpacking bram contents...')
     # hardcode unpack of 16 bit values. Assumes bitgrowth of log2(128)=7 bits and input of 4_3 * 4_3.
     sys.stdout.flush()
     bram_data = []
     for f, fpga in enumerate(fpgas):
-        print " Unpacking %i values from %s." % (len(bram_dmp['data'][f]), c.xsrvs[f])
+        print(" Unpacking %i values from %s." % (len(bram_dmp['data'][f]), c.xsrvs[f]))
         if len(bram_dmp['data'][f]) > 0:
             bram_data.append(struct.unpack('>%ii' % (len(bram_dmp['data'][f]) / 4), bram_dmp['data'][f]))
         else:
-            print " Got no data back for %s." % c.xsrvs[f]
+            print(" Got no data back for %s." % c.xsrvs[f])
             bram_data.append([])
-    print 'Done.'
-    print '========================\n'
+    print('Done.')
+    print('========================\n')
 
     for xeng, fpga in enumerate(fpgas):
-        print '--------------------'
-        print '\nX-engine %i' % xeng
-        print '--------------------'
+        print('--------------------')
+        print('\nX-engine %i' % xeng)
+        print('--------------------')
         for li in range(0, len(bram_data[xeng]) / 2):
             # index over complex numbers in bram
             index = (bram_dmp['offsets'][xeng]/(4*2)) + li
@@ -148,9 +151,9 @@ try:
             real_val = bram_data[xeng][li * 2]
             imag_val = bram_data[xeng][li * 2 + 1]
             if (real_val != 0) or (imag_val != 0) or opts.verbose:
-                print '[%s] [%4i,%4i]: Freq: %i. bls: %s_%s. Raw value: 0x%05x + 0x%05xj (%6i + %6ij).'%(c.xsrvs[xeng], index, bls_index, freq, i, j, real_val, imag_val, real_val, imag_val)
-        print 'Done with %s, X-engine %i.'%(c.xsrvs[xeng],xeng)
-    print 'Done with all.'
+                print('[%s] [%4i,%4i]: Freq: %i. bls: %s_%s. Raw value: 0x%05x + 0x%05xj (%6i + %6ij).'%(c.xsrvs[xeng], index, bls_index, freq, i, j, real_val, imag_val, real_val, imag_val))
+        print('Done with %s, X-engine %i.'%(c.xsrvs[xeng],xeng))
+    print('Done with all.')
 
 except KeyboardInterrupt:
     exit_clean()

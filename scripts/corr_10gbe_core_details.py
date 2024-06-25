@@ -13,15 +13,18 @@ Revisions
 2009 / 11 / 12  JRM after discussion with Dave.
 '''
 
+from __future__ import absolute_import
+from __future__ import print_function
 import corr
 import sys
 import logging
+from six.moves import range
 
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n', \
-        c.log_handler.printMessages()
-    print 'Unexpected error:', sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n', \
+        c.log_handler.printMessages())
+    print('Unexpected error:', sys.exc_info())
     try:
         c.disconnect_all()
     except:
@@ -60,12 +63,12 @@ if __name__ == '__main__':
     verbose = opts.verbose
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file=config_file,
             log_level=(logging.DEBUG if verbose else logging.INFO),
             connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
     # assemble struct for header stuff...
     # 0x00 - 0x07: My MAC address
@@ -92,26 +95,26 @@ try:
 
     if c.config['feng_out_type'] == '10gbe':
         for (f, fpga) in enumerate(c.ffpgas):
-            print '''
+            print('''
 
- == == == == == == == == == == == == == == == == '''
+ == == == == == == == == == == == == == == == == ''')
             for core in range(c.config['n_xaui_ports_per_ffpga']):
                 device = '%s%i' % (gbe_device, core)
-                print 'F engine', c.fsrvs[f], 'port', core
+                print('F engine', c.fsrvs[f], 'port', core)
                 fpga.print_10gbe_core_details(device, arp=opts.arp,
                         cpu=opts.verbose)
-            print ' == == == == == == == == == == == == == == == == '
+            print(' == == == == == == == == == == == == == == == == ')
 
     for (f, fpga) in enumerate(c.xfpgas):
-        print '''
+        print('''
 
- == == == == == == == == == == == == == == == == '''
+ == == == == == == == == == == == == == == == == ''')
         for core in range(c.config['n_xaui_ports_per_xfpga']):
             device = '%s%i' % (gbe_device, core)
-            print 'X engine', c.xsrvs[f], 'port', core
+            print('X engine', c.xsrvs[f], 'port', core)
             fpga.print_10gbe_core_details(device, arp=opts.arp,
                     cpu=opts.verbose)
-        print ' == == == == == == == == == == == == == == == == '
+        print(' == == == == == == == == == == == == == == == == ')
 except KeyboardInterrupt:
 
     exit_clean()

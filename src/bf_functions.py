@@ -15,9 +15,12 @@ Revisions:
 2013-03-05 AM SPEAD metadata
 \n"""
 
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, numpy, logging, struct, socket
 import spead64_48 as spead
 import inspect
+from six.moves import range
 
 class fbfException(Exception):
     def __init__(self, errno, msg, trace=None, logger=None):
@@ -131,7 +134,7 @@ class fbf:
 
     def get_bfs(self):
         """get bf blocks per fpga"""
-        all_bfs = range(self.get_param('bf_be_per_fpga'))
+        all_bfs = list(range(self.get_param('bf_be_per_fpga')))
         return all_bfs
 
     def get_beams(self):
@@ -148,7 +151,7 @@ class fbf:
         inputs = []
         for ant_str in ant_strs:
             if self.config.simulate:
-                print 'finding index for %s' % ant_str
+                print('finding index for %s' % ant_str)
             inputs.append(beam_ants.index(ant_str))
         return inputs
 
@@ -161,14 +164,14 @@ class fbf:
         beam = self.beams2beams(beams=beam)[0]
         # construct a list of valid ant_strs for each beam, then check specified ants are in
         if self.config.simulate:
-            print 'finding ants for beam %s' % beam
+            print('finding ants for beam %s' % beam)
         beam_ants = []
         beam_idx = self.beam2index(beam)
         offset = numpy.mod(beam_idx, 2)
         for n, ant_str in enumerate(all_ants):
             if numpy.mod(n+offset, 2) == 0:
                 if self.config.simulate:
-                    print 'adding ant %s for beam %s' % (ant_str, beam)
+                    print('adding ant %s for beam %s' % (ant_str, beam))
                 beam_ants.append(ant_str)
         if ant_strs == all:
             return beam_ants
@@ -284,7 +287,7 @@ class fbf:
         if frequencies == None:
             fft_bins = []
         elif frequencies == all:
-            fft_bins = range(n_chans)
+            fft_bins = list(range(n_chans))
         else:
             bandwidth = self.get_param('bandwidth')
             start_freq = 0
@@ -322,7 +325,7 @@ class fbf:
         frequencies = []
         n_chans = self.get_param('n_chans')
         if fft_bins == all:
-            fft_bins = range(n_chans)
+            fft_bins = list(range(n_chans))
         if type(fft_bins) == int:
             fft_bins = [fft_bins]
         if max(fft_bins) > n_chans or min(fft_bins) < 0:
@@ -389,7 +392,7 @@ class fbf:
         antenna_indices = []
         n_ants = self.get_param('n_ants')
         if ant_strs == all:
-            antenna_indices.extend(range(n_ants))
+            antenna_indices.extend(list(range(n_ants)))
         # map antenna strings to inputs
         else:
             antenna_indices = self.map_ant_to_input(beam=beam, ant_strs=ant_strs)
@@ -410,7 +413,7 @@ class fbf:
         # write to all targets with the same register name
         if self.optimisations and (len(data) == 1 and len(targets) > 1):
             if self.config.simulate == True:
-                print 'optimisations on, single data item, writing in parallel'
+                print('optimisations on, single data item, writing in parallel')
             datum = data[0]
             n_bfs = len(self.get_bfs())
             # run through all bfs
@@ -425,7 +428,7 @@ class fbf:
                         fpgas.append(target['fpga'])
                 if len(fpgas) != 0:
                     if self.config.simulate == True:
-                        print 'dummy executing non-blocking request for write to %s on %d fpgas' % (name, len(fpgas))
+                        print('dummy executing non-blocking request for write to %s on %d fpgas' % (name, len(fpgas)))
                     else:
                         nottimedout, rv = corr.corr_functions.non_blocking_request(fpgas=fpgas, timeout=timeout,
                                                                                    request='write',
@@ -442,7 +445,7 @@ class fbf:
         # optimisations off, or (many data, or a single target) so many separate writes
         else:
             if self.config.simulate == True:
-                print 'optimisations off or multiple items or single target'
+                print('optimisations off or multiple items or single target')
             for target_index, target in enumerate(targets):
                 if len(data) == 1 and len(targets) > 1:
                     datum = data[0]
@@ -455,7 +458,7 @@ class fbf:
                     name = '%s%s_%s' % (bf_register_prefix, target['bf'], device_name)
                 # pretend to write if no FPGA
                 if self.config.simulate == True:
-                    print 'dummy write of 0x%.8x to %s:%s offset %i' % (datum, target['fpga'], name, offset)
+                    print('dummy write of 0x%.8x to %s:%s offset %i' % (datum, target['fpga'], name, offset))
                 else:
                     try:
                         if blindwrite:
@@ -476,7 +479,7 @@ class fbf:
             name = '%s%s_%s' % (self.get_param('bf_register_prefix'), target['bf'], device_name)
             # pretend to read if no FPGA
             if self.config.simulate == True:
-                print 'dummy read from %s:%s offset %i' % (target['fpga'], name, offset)
+                print('dummy read from %s:%s offset %i' % (target['fpga'], name, offset))
             else:
                 try:
                     values.append(target['fpga'].read_int(device_name=name))
@@ -610,7 +613,7 @@ class fbf:
         self.write_int('control', [0x0], 0, fft_bins=fft_bins, blindwrite=blindwrite)
         if len(data) == 1:
             if self.config.simulate:
-                print 'bf_write_int: setting up data for single data item'
+                print('bf_write_int: setting up data for single data item')
             # set up the value to be written
             self.write_int('value_in', data, offset, fft_bins=fft_bins, blindwrite=blindwrite)
         # look up control value required to write when triggering write
@@ -623,30 +626,30 @@ class fbf:
             antenna_indices = self.antenna2antenna_indices(beam=beam, ant_strs=antennas)
             location = self.beam2location(beams=beam)[0]
             if self.config.simulate:
-                print 'bf_write_int: setting up location'
+                print('bf_write_int: setting up location')
             # set up target stream (location of beam in set )
             self.write_int('stream', [location], 0, fft_bins=fft_bins, blindwrite=blindwrite)
             # go through antennas (normally just one but may be all or None)
             for antenna_index in antenna_indices:
                 # if no frequency component (i.e all frequencies for this antenna)
                 if self.config.simulate:
-                    print 'bf_write_int: setting up antenna'
+                    print('bf_write_int: setting up antenna')
                 # set up antenna register
                 self.write_int('antenna', [antenna_index], 0, fft_bins=fft_bins, blindwrite=blindwrite)
                 # if we are writing to all fft bins
                 if all_freqs:
                     if self.config.simulate:
-                        print 'bf_write_int: writing to'
+                        print('bf_write_int: writing to')
                     bf_fft_bins = self.get_bf_fft_bins()
                     n_bfs = len(self.get_bfs()) * len(self.get_fpgas())
-                    bins = range(0, n_bfs*bf_fft_bins, bf_fft_bins)
+                    bins = list(range(0, n_bfs*bf_fft_bins, bf_fft_bins))
                     # list of previous bf values, guaranteed to not be the same for first item
                     pvals = [data[0]+1]*n_bfs
                     # cycle through all register indices
                     for reg_index in range(bf_fft_bins):
                         if self.config.simulate:
-                            print 'bf_write_int: writing to frequencies that are a multiple of %d from offset %d' \
-                                  % (bf_fft_bins, reg_index)
+                            print('bf_write_int: writing to frequencies that are a multiple of %d from offset %d' \
+                                  % (bf_fft_bins, reg_index))
                         # write to all frequency registers
                         self.write_int('frequency', [reg_index], 0, fft_bins=bins, blindwrite=blindwrite)
                         # TODO maybe look for the same value and do asynchronous write?
@@ -660,18 +663,18 @@ class fbf:
                                 pvals[bf] = value
                             else:
                                 if self.config.simulate:
-                                    print 'bf_write_int: skipping writing to bf %d' % bf
+                                    print('bf_write_int: skipping writing to bf %d' % bf)
                         # trigger the write on first item (will happen automatically after that)
                         if reg_index == 0:
                             if self.config.simulate:
-                                print 'bf_write_int: setting up control for first item'
+                                print('bf_write_int: setting up control for first item')
                             self.write_int('control', [control], 0, fft_bins=bins, blindwrite=blindwrite)
                 # otherwise we must go through one at a time
                 else:
                     # cycle through frequencies
                     for index, fft_bin in enumerate(fft_bins):
                         if self.config.simulate:
-                            print 'bf_write_int: setting up frequency'
+                            print('bf_write_int: setting up frequency')
                         # set up frequency register on bf associated with fft_bin being processed
                         self.write_int('frequency', [self.frequency2frequency_reg_index(fft_bins=[fft_bin])][0], 0,
                                        fft_bins=[fft_bin], blindwrite=blindwrite)
@@ -679,7 +682,7 @@ class fbf:
                         if len(data) > 1:
                             # set up the value to be written
                             if self.config.simulate:
-                                print 'bf_write_int: setting up one of multiple data values'
+                                print('bf_write_int: setting up one of multiple data values')
                             value_in = data[index]
                             # write if (we are writing all values and have just moved to next bf) or
                             # (value differs from previous)
@@ -687,19 +690,19 @@ class fbf:
                         # trigger the write
                         # set up the value to be written
                         if self.config.simulate:
-                            print 'bf_write_int: triggering antenna, frequencies'
+                            print('bf_write_int: triggering antenna, frequencies')
                         self.write_int('control', [control], 0, fft_bins=[fft_bin], blindwrite=blindwrite)
                 # if no frequency component, trigger
                 if len(fft_bins) == 0:
                     # trigger the write
                     if self.config.simulate:
-                        print 'bf_write_int: triggering for no antenna but no frequencies'
+                        print('bf_write_int: triggering for no antenna but no frequencies')
                     self.write_int('control', [control], 0, fft_bins=fft_bins, blindwrite=blindwrite)
             # if no antenna component, trigger write
             if len(antenna_indices) == 0:
                 # trigger the write
                 if self.config.simulate:
-                    print 'bf_write_int: triggering for no antennas (and no frequencies)'
+                    print('bf_write_int: triggering for no antennas (and no frequencies)')
                 self.write_int('control', [control], 0, fft_bins=fft_bins, blindwrite=blindwrite)
 
     def cf_bw2fft_bins(self, centre_frequency, bandwidth):
@@ -719,7 +722,7 @@ class fbf:
         # get fft bin for edge frequencies
         edge_bins = self.frequency2fft_bin(frequencies=[centre_frequency-bandwidth/2,
                                                         centre_frequency+bandwidth/2-fft_bin_width])
-        bins = range(edge_bins[0], edge_bins[1]+1)
+        bins = list(range(edge_bins[0], edge_bins[1]+1))
         return bins
 
     def cf_bw2cf_bw(self, centre_frequency, bandwidth):
@@ -799,12 +802,12 @@ class fbf:
                 disabled_fft_bins = self.get_disabled_fft_bins(beam)
                 if len(disabled_fft_bins) > 0:
                     if self.config.simulate == True:
-                        print 'disabling excluded bfs'
+                        print('disabling excluded bfs')
                     # disable bfs not required via the filter block in the beamformer
                     self.bf_write_int(destination='filter', data=[0x0], offset=0x0, beams=beam,
                                       fft_bins=disabled_fft_bins)
                     if self.config.simulate == True:
-                        print 'configuring excluded bfs'
+                        print('configuring excluded bfs')
                     # configure disabled beamformers to output to HEAP 0 HEAP size of 0, offset 0
                     bf_config = ((0 << 16) & 0x7fff0000 | (0 << 8) & 0x0000ff00 | 0 & 0x000000ff)
                     self.write_int('cfg%i' % beam_index, [bf_config], 0, fft_bins=disabled_fft_bins)
@@ -816,17 +819,17 @@ class fbf:
                 for offset in range(len(fpga_bf_e)):
                     bf_config.append((1 << 31))
                 if self.config.simulate == True:
-                    print 'resetting included speadify blocks'
+                    print('resetting included speadify blocks')
                 self.write_int('cfg%i' % beam_index, bf_config, 0, fft_bins=enabled_fft_bins)
                 # generate vector of values that will match the number of bfs in the list
                 bf_config = []
                 for offset in range(len(fpga_bf_e)):
                     bf_config.append((beam_index << 16) & 0x7fff0000 | (len(fpga_bf_e) << 8) & 0x0000ff00 |
                                      offset & 0x000000ff)
-                if self.config.simulate == True: print 'configuring included bfs'
+                if self.config.simulate == True: print('configuring included bfs')
                 self.write_int('cfg%i' % beam_index, bf_config, 0, fft_bins=enabled_fft_bins)
                 if self.config.simulate == True:
-                    print 'enabling included bfs'
+                    print('enabling included bfs')
                 # lastly enable those parts
                 self.bf_write_int(destination='filter', data=[0x1], offset=0x0, beams=beam, fft_bins=enabled_fft_bins)
                 self.syslogger.info('Output for %s started' % beam)
@@ -846,7 +849,7 @@ class fbf:
                 self.syslogger.info("Beamformer output paused for beam %s" % beam)
                 if spead_stop:
                     if self.config.simulate == True:
-                        print 'tx_stop: dummy ending SPEAD stream for beam %s' % beam
+                        print('tx_stop: dummy ending SPEAD stream for beam %s' % beam)
                     else:
                         spead_tx = self.get_spead_tx(beam)
                         spead_tx.send_halt()
@@ -1017,7 +1020,7 @@ class fbf:
             calibration = self.get_beam_param(beam, 'cal_coeffs_input%i' % input_n)
         elif cal_default == 'poly':
             poly = self.get_beam_param(beam, 'cal_poly_input%i' % input_n)
-            calibration = numpy.polyval(poly, range(n_coeffs))
+            calibration = numpy.polyval(poly, list(range(n_coeffs)))
             if self.get_param('bf_cal_type') == 'complex':
                 calibration = [cal+0*1j for cal in calibration]
         else:
@@ -1109,7 +1112,7 @@ class fbf:
     def cal_spectrum_set(self, beam, ant_str, init_coeffs=[], init_poly=[], spead_issue=True):
         """Set given beam and antenna calibration settings to given co-efficients."""
         if self.config.simulate:
-            print 'setting spectrum for beam %s antenna %s' % (beam, ant_str)
+            print('setting spectrum for beam %s antenna %s' % (beam, ant_str))
         n_coeffs = self.get_param('n_chans')
         if init_coeffs == [] and init_poly == []:
             coeffs = self.cal_default_get(beam=beam, ant_str=ant_str)
@@ -1122,7 +1125,7 @@ class fbf:
                                'function %s, line no %s\n' % (__name__, inspect.currentframe().f_lineno),
                                self.syslogger)
         else:
-            coeffs = numpy.polyval(init_poly, range(n_coeffs))
+            coeffs = numpy.polyval(init_poly, list(range(n_coeffs)))
             self.cal_default_set(beam, ant_str, init_poly=init_poly)
             fpga_values = self.cal_floats2fpga(data=coeffs)
             # write final vector to calibrate block
@@ -1163,7 +1166,7 @@ class fbf:
         beam = self.beams2beams(beam)
         spead_tx = self.get_spead_tx(beam)
         if self.config.simulate:
-            print 'dummy sending spead heap'
+            print('dummy sending spead heap')
         else:
             spead_tx.send_heap(ig.get_heap())
 
@@ -1178,7 +1181,7 @@ class fbf:
                                   (ant_str, input_n, lru, feng_input) in self.c.adc_lru_mapping_get()]))
         for beam in beams:
             if self.config.simulate:
-                print 'Issuing labelling meta data for beam %s' % beam
+                print('Issuing labelling meta data for beam %s' % beam)
             self.send_spead_heap(beam, spead_ig)
             self.syslogger.info("Issued SPEAD metadata describing baseline labelling and "
                                     "input mapping for beam %s" % beam)
@@ -1239,7 +1242,7 @@ class fbf:
                           shape=[], fmt=spead.mkfmt(('u', spead.ADDRSIZE)), init_val=0)
         for beam in beams:
             if self.config.simulate:
-                print 'Issuing static meta data for beam %s' % beam
+                print('Issuing static meta data for beam %s' % beam)
             self.send_spead_heap(beam, spead_ig)
             self.syslogger.info("Issued static SPEAD metadata for beam %s" % beam)
 
@@ -1255,7 +1258,7 @@ class fbf:
                                                                            "output UDP packets.", shape=[-1],
                               fmt=spead.STR_FMT, init_val=self.get_beam_param(beam, 'rx_udp_ip_str'))
             if self.config.simulate:
-                print 'Issuing destination meta data for beam %s' % beam
+                print('Issuing destination meta data for beam %s' % beam)
                 self.send_spead_heap(beam, spead_ig)
                 self.syslogger.info("Issued destination SPEAD metadata for beam %s" % beam)
 
@@ -1288,7 +1291,7 @@ class fbf:
                               ndarray=numpy.ndarray(shape=(self.get_n_chans(beam), self.get_param('xeng_acc_len'), 2),
                                                     dtype=numpy.int8))
             if self.config.simulate:
-                print 'Issuing passband meta data for beam %s' % beam
+                print('Issuing passband meta data for beam %s' % beam)
                 self.send_spead_heap(beam, spead_ig)
                 self.syslogger.info("Issued passband SPEAD metadata for beam %s" % beam)
 
@@ -1314,7 +1317,7 @@ class fbf:
         for beam in beams:
             ig = spead_ig
             if self.config.simulate:
-                    print 'Issuing time meta data for beam %s' % beam
+                    print('Issuing time meta data for beam %s' % beam)
             self.send_spead_heap(beam, ig)
             self.syslogger.info("Issued SPEAD timing metadata for beam %s" % beam)
 
@@ -1347,7 +1350,7 @@ class fbf:
                               shape=[self.get_param('n_chans'), 2], fmt=spead.mkfmt(('u', 32)), init_val=vals)
         for beam in beams:
             if self.config.simulate:
-                print 'Issuing equalisation and rf meta data for beam %s' % beam
+                print('Issuing equalisation and rf meta data for beam %s' % beam)
             self.send_spead_heap(beam, spead_ig)
             self.syslogger.info("Issued SPEAD EQ and RF metadata for beam %s" % beam)
 
@@ -1374,7 +1377,7 @@ class fbf:
                                                                                              % ant_str,
                             shape=[self.get_param('n_chans'), 2], fmt=spead.mkfmt(('f', 64)), init_val=vals)
             if self.config.simulate:
-                print 'Issuing calibration meta data for beam %s' % beam
+                print('Issuing calibration meta data for beam %s' % beam)
                 self.send_spead_heap(beam, ig)
                 self.syslogger.info("Issued SPEAD EQ metadata for beam %s" % beam)
 

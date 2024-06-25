@@ -20,6 +20,8 @@ Revisions:
                 Fixed number of bits calculation
 
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging, pylab, matplotlib
 
 polList = []
@@ -27,8 +29,8 @@ report = []
 logscale = False
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n', lh.printMessages() 
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n', lh.printMessages()) 
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -64,19 +66,19 @@ def parseAntenna(antArg):
     return ants
 
 def get_data(pol):
-    print 'Integrating data %i from %s:' % (pol['num_accs'], pol['ant_str'])
-    print ' Grabbing data off snap blocks...',
+    print('Integrating data %i from %s:' % (pol['num_accs'], pol['ant_str']))
+    print(' Grabbing data off snap blocks...', end=' ')
     sys.stdout.flush()
     unpacked_vals, spectra = c.get_quant_snapshot(pol['ant_str'], n_spectra = 1)
-    print 'done.'
-    print ' Accumulating...',
+    print('done.')
+    print(' Accumulating...', end=' ')
     sys.stdout.flush()
     unpacked_vals = numpy.square(numpy.abs(unpacked_vals))
     if spectra > 1:
         unpacked_vals = numpy.sum(unpacked_vals, axis = 0)
     pol['accumulations'] = numpy.sum([pol['accumulations'], unpacked_vals], axis = 0)
     pol['num_accs'] += spectra
-    print 'done.'
+    print('done.')
     return
 
 if __name__ == '__main__':
@@ -109,16 +111,16 @@ lh = corr.log_handlers.DebugLogHandler(35)
 if opts.ant != None:
     ant_strs = parseAntenna(opts.ant)
 else:
-    print 'No antenna given for which to plot data.'
+    print('No antenna given for which to plot data.')
     exit_fail()
 
 logscale = opts.log
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
 
     binary_point = c.config['feng_fix_pnt_pos']
     packet_len = c.config['10gbe_pkt_len']
@@ -128,14 +130,14 @@ try:
     adc_levels_acc_len = c.config['adc_levels_acc_len']
 
     if num_bits != 4:
-        print 'This script is only written to work with 4 bit quantised values.'
+        print('This script is only written to work with 4 bit quantised values.')
         exit_clean()
 
     # set up the figure with a subplot for each polarisation to be plotted
     fig = matplotlib.pyplot.figure()
     for p, ant_str in enumerate(ant_strs):
         if not ant_str in c.config._get_ant_mapping_list():
-            print 'Unrecognised input %s. Must be in ' % p, c.config._get_ant_mapping_list()
+            print('Unrecognised input %s. Must be in ' % p, c.config._get_ant_mapping_list())
             exit_clean()
         polList.append({'ant_str':ant_str})
         polList[p]['accumulations'] = numpy.zeros(c.config['n_chans'])
@@ -144,7 +146,7 @@ try:
 
     # start the process    
     fig.canvas.manager.window.after(100, drawDataCallback)
-    print 'Plot started.'
+    print('Plot started.')
     matplotlib.pyplot.show()
 
 except KeyboardInterrupt:

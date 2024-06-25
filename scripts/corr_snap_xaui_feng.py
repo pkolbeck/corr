@@ -10,12 +10,15 @@ Revisions:\n
 2010-07-22: JRM Copied from corr_snap_xaui.py\n
 2011-09-09: PVP Updated for new snapshot blocks.
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging
+from six.moves import range
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',
+    print('FAILURE DETECTED. Log entries:\n', end=' ')
     c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -33,19 +36,19 @@ def tvg_check(fsrv, count, d, freq):
         data_chan = d.data & 0xffffffff
         if data_chan != freq:
             #raise RuntimeError("[%s] header says freq %d, tvg data has %d instead." % (fsrv, freq, data_chan))
-            print "ERROR: [%s] header says freq %d, tvg data has %d instead." % (fsrv, freq, data_chan)
+            print("ERROR: [%s] header says freq %d, tvg data has %d instead." % (fsrv, freq, data_chan))
 
 def print_packet_info_basic(server, count, d):
-    print '[%s @ %4i]: %016X' % (server, count, d.data),
-    if d.eof: print '[EOF]',
-    if d.link_down: print '[LINK DOWN]',
-    if d.mrst: print '[MRST]',
-    if d.sync: print '[SYNC]',
-    if d.hdr_valid: print '[HDR]',
-    print ''
+    print('[%s @ %4i]: %016X' % (server, count, d.data), end=' ')
+    if d.eof: print('[EOF]', end=' ')
+    if d.link_down: print('[LINK DOWN]', end=' ')
+    if d.mrst: print('[MRST]', end=' ')
+    if d.sync: print('[SYNC]', end=' ')
+    if d.hdr_valid: print('[HDR]', end=' ')
+    print('')
 
 def print_packet_info(server, header_index, length, unpacked, chans):
-    print '[%s] [Pkt@ %4i Len: %2i] pcnt_curr(%10i) MCNT(%10i) ANT(%1i) Freq(%4i) Tstamp(%10i) RMS: X: %1.2f Y: %1.2f. {X: %1.2f+%1.2fj (%2.1f & %2.1f bits), Y:%1.2f+%1.2fj (%2.1f & %2.1f bits)} {Pk: X,Y: %1.2f,%1.2f (%2.1f,%2.1f bits)}' % \
+    print('[%s] [Pkt@ %4i Len: %2i] pcnt_curr(%10i) MCNT(%10i) ANT(%1i) Freq(%4i) Tstamp(%10i) RMS: X: %1.2f Y: %1.2f. {X: %1.2f+%1.2fj (%2.1f & %2.1f bits), Y:%1.2f+%1.2fj (%2.1f & %2.1f bits)} {Pk: X,Y: %1.2f,%1.2f (%2.1f,%2.1f bits)}' % \
         (server,\
         header_index,\
         length,\
@@ -67,7 +70,7 @@ def print_packet_info(server, header_index, length, unpacked, chans):
         unpacked['pk_polQ'],\
         unpacked['pk_polI'],\
         unpacked['pk_bits_used_Q'],\
-        unpacked['pk_bits_used_I'])
+        unpacked['pk_bits_used_I']))
 
 def feng_unpack(f, hdr_index, pkt_len, skip_indices):
     pkt_64bit = data[f]['data'][hdr_index].data #struct.unpack('>Q',bram_dmp['bram_msb'][f][(4*hdr_index):(4*hdr_index)+4]+bram_dmp['bram_lsb'][f][(4*hdr_index):(4*hdr_index)+4])[0]
@@ -178,10 +181,10 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:    
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
     report = []
 
 #Even with no XAUI links, might still have the snap block in the feng
@@ -196,13 +199,13 @@ try:
     num_bits = c.config['feng_bits']
 
     if num_bits != 4:
-        print 'This script is only written to work with 4 bit quantised values.'
+        print('This script is only written to work with 4 bit quantised values.')
         raise KeyboardInterrupt
     
-    print 'You should have %i XAUI cables connected to each F engine FPGA.' % (c.config['n_xaui_ports_per_ffpga'])
+    print('You should have %i XAUI cables connected to each F engine FPGA.' % (c.config['n_xaui_ports_per_ffpga']))
 
     if opts.tvg:
-        print "Enabling packetiser TVG..."
+        print("Enabling packetiser TVG...")
         if c.is_narrowband():
             corr.corr_functions.write_masked_register(c.ffpgas, corr.corr_nb.register_fengine_control, tvg_en = True,  tvgsel_pkt = True)
             corr.corr_functions.write_masked_register(c.ffpgas, corr.corr_nb.register_fengine_control, tvg_en = False, tvgsel_pkt = True)
@@ -216,11 +219,11 @@ try:
     # The offset is in bytes, but must work on packets, because the 128-bit words each contain a packet and the fchan sets take a certain number of packets.
     packets_per_f_chan_group = 128 / (64 / 16)
     offset = opts.offset * (packets_per_f_chan_group + 1) * (128 / 8)
-    print 'Grabbing data off snap blocks with offset %i channels (%i bytes) and unpacking it...' % (opts.offset, offset),
+    print('Grabbing data off snap blocks with offset %i channels (%i bytes) and unpacking it...' % (opts.offset, offset), end=' ')
     #for x in range(c.config['n_xaui_ports_per_ffpga']):
     #bram_dmp = c.fsnap_all(dev_name,brams,man_trig=man_trigger,wait_period=3,offset=opts.offset*num_bits*2*2/64*packet_len)
     data = corr.snap.get_xaui_snapshot(c, offset = offset, man_trigger = opts.man_trigger, man_valid = opts.man_valid)
-    print 'done.'
+    print('done.')
 
     # read peecount
     msw = c.ffpgas[0].read_uint('mcount_msw')
@@ -228,15 +231,15 @@ try:
     mcount = (msw << 32) + lsw
     pcnt_current = int(((msw << 32) + lsw) * c.config['pcnt_scale_factor'] / c.config['mcnt_scale_factor'])
 
-    print 'pcnt_sf(%i) mcnt_sf(%i) mcount(%i) pcnt_current(%i)' % (c.config['pcnt_scale_factor'], c.config['mcnt_scale_factor'], mcount, pcnt_current)
+    print('pcnt_sf(%i) mcnt_sf(%i) mcount(%i) pcnt_current(%i)' % (c.config['pcnt_scale_factor'], c.config['mcnt_scale_factor'], mcount, pcnt_current))
 
-    print 'Analysing packets...'
+    print('Analysing packets...')
     skip_indices = []
     #data = [data[0]]
     for fengine_data in data:
         f = fengine_data['fpga_index']
         fsrv = c.fsrvs[f]
-        print fsrv + ': '
+        print(fsrv + ': ')
         report.append(dict())
         report[f]['pkt_total'] = 0
         pkt_hdr_idx = -1
@@ -247,7 +250,7 @@ try:
             if opts.verbose:
                 print_packet_info_basic(fsrv, i, d)
             if d.link_down:
-                print '[%s] LINK DOWN AT %i' % (fsrv, i)
+                print('[%s] LINK DOWN AT %i' % (fsrv, i))
             elif d.hdr_valid:
                 pkt_mcnt = (d.data & ((2**64)-(2**16)))>>16
                 pkt_hdr_current_freq = pkt_mcnt % n_chans
@@ -261,38 +264,38 @@ try:
             elif d.eof:
                 # skip the first packet entry which has no header (snap block triggered on sync)
                 if pkt_hdr_idx < 0:
-                    print "Skipping data at f(%i) i(%i) hdr_index(%i)" % (f, i, pkt_hdr_idx)
+                    print("Skipping data at f(%i) i(%i) hdr_index(%i)" % (f, i, pkt_hdr_idx))
                     continue
                 pkt_len = i - pkt_hdr_idx + 1
                 feng_unpkd_pkt = feng_unpack(f, pkt_hdr_idx, pkt_len, skip_indices)
                 #print feng_unpkd_pkt['raw_packets']
                 print_packet_info(server = fsrv, header_index = pkt_hdr_idx, length = pkt_len - len(skip_indices), unpacked = feng_unpkd_pkt, chans = n_chans)
-                if opts.verbose: print ''
+                if opts.verbose: print('')
                 # packet_len is length of data, not including header
                 if pkt_len - len(skip_indices) != (packet_len + 1):
-                    print 'MALFORMED PACKET! of length %i starting at index %i' % (pkt_len - len(skip_indices), i)
-                    print 'len of skip_indices: %i:' % len(skip_indices), skip_indices
-                    if not report[f].has_key('Malformed packets'):
+                    print('MALFORMED PACKET! of length %i starting at index %i' % (pkt_len - len(skip_indices), i))
+                    print('len of skip_indices: %i:' % len(skip_indices), skip_indices)
+                    if 'Malformed packets' not in report[f]:
                         report[f]['Malformed packets'] = 1
                     else: 
                         report[f]['Malformed packets'] += 1
 
-                if not report[f].has_key('pkt_ant_%i'%feng_unpkd_pkt['pkt_ant']):
+                if 'pkt_ant_%i'%feng_unpkd_pkt['pkt_ant'] not in report[f]:
                     report[f]['pkt_ant_%i' % feng_unpkd_pkt['pkt_ant']] = 1
                 else: 
                     report[f]['pkt_ant_%i' % feng_unpkd_pkt['pkt_ant']] += 1
                 report[f]['pkt_total'] += 1
 
-    print '\n\nDone with all servers.\nSummary:\n==========================' 
+    print('\n\nDone with all servers.\nSummary:\n==========================') 
     for f,srv in enumerate(c.fsrvs):
-        keys = report[f].keys()
+        keys = list(report[f].keys())
         keys.sort()
-        print '------------------------'
-        print c.fsrvs[f] 
-        print '------------------------'
+        print('------------------------')
+        print(c.fsrvs[f]) 
+        print('------------------------')
         for key in sorted(keys):
-            print key,': ',report[f][key]
-    print '=========================='
+            print(key,': ',report[f][key])
+    print('==========================')
 
 except KeyboardInterrupt:
     exit_clean()

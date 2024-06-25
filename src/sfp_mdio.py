@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import numpy, time, sys, logging
+from six.moves import range
 
 logger = logging.getLogger(__name__)
 
@@ -450,26 +453,26 @@ class Sfp_module(object):
         for word_ctr in range(0, bytes_to_write.size/2):
             address_to_write = slave_start_address + word_ctr
             data_to_write = (bytes_to_write[(word_ctr*2)+1] << 8) + (bytes_to_write[word_ctr*2] & 0xff) 
-            print 'Writing SFP register data(0x%04x) to slave address(0x%04x). ' % (data_to_write, address_to_write)
+            print('Writing SFP register data(0x%04x) to slave address(0x%04x). ' % (data_to_write, address_to_write))
             self.phy.mdio_sw_write(channel = channel, address = 0x1e, mapped_address = 0x8002, data = address_to_write)
             # is the device still busy?
-            print 'Checking busy 0...'
+            print('Checking busy 0...')
             if self.phy.sfp_i2c_check_busy(channel = channel):
-                print 'SFP still busy - want to carry on?'
+                print('SFP still busy - want to carry on?')
             # the actual data
-            print 'loading data...'
+            print('loading data...')
             self.phy.mdio_sw_write(channel = channel, address = 0x1e, mapped_address = 0x8005, data = data_to_write)
-            print 'Checking busy 1...'
+            print('Checking busy 1...')
             if self.phy.sfp_i2c_check_busy(channel = channel):
-                print 'SFP still busy - want to carry on?'
+                print('SFP still busy - want to carry on?')
             # write command - see description for register 1ex8000
-            print 'write command'
+            print('write command')
             self.phy.mdio_sw_write(channel = channel, address = 0x1e, mapped_address = 0x8000, data = 0x0010)
             # is the device still busy?
-            print 'Checking busy 2...'
+            print('Checking busy 2...')
             if self.phy.sfp_i2c_check_busy(channel = channel):
-                print 'SFP still busy - want to carry on?'
-            print '\n----------------\n'
+                print('SFP still busy - want to carry on?')
+            print('\n----------------\n')
         # check if required
         write_errors = -1
         if check_write:
@@ -478,29 +481,29 @@ class Sfp_module(object):
             for word_ctr in range(0, bytes_to_write.size / 2):
                 wrote = (bytes_to_write[(word_ctr*2)+1] << 8) + (bytes_to_write[word_ctr*2] & 0xff)
                 read = (read_back[(word_ctr*2)+1] << 8) + (read_back[word_ctr*2] & 0xff)
-                print 'address(0x%08x) wrote(0x%04x) read(0x%04x)' % (slave_start_address + word_ctr, wrote, read)
+                print('address(0x%08x) wrote(0x%04x) read(0x%04x)' % (slave_start_address + word_ctr, wrote, read))
                 if wrote != read:
                     write_errors += 1
         return write_errors
 
     def print_module_regs(self, slave_id, bytes_to_read = 16):
-        print 'PHY(%02i) channel(%02i) slave_id(0x%02x):' % (self.phy.id, self.id, slave_id)
+        print('PHY(%02i) channel(%02i) slave_id(0x%02x):' % (self.phy.id, self.id, slave_id))
         regdata = self.read_module_regs(slave_id = slave_id, num_bytes_to_read = bytes_to_read)
         if slave_id == 0x50: slave_id = 0xa0
         elif slave_id == 0x51: slave_id = 0xa2
         for reg in range(bytes_to_read):
-            print '\treg(%02i)-' % reg,
+            print('\treg(%02i)-' % reg, end=' ')
             try:
                 if sfp_module_reg[slave_id][reg]['type'] == 'value':
-                    print '%s' % sfp_module_reg[slave_id][reg][regdata[reg]]
+                    print('%s' % sfp_module_reg[slave_id][reg][regdata[reg]])
                 elif sfp_module_reg[slave_id][reg]['type'] == 'bit':
-                    print '%s' % sfp_module_reg[slave_id][reg][regdata[reg]]
+                    print('%s' % sfp_module_reg[slave_id][reg][regdata[reg]])
                 elif sfp_module_reg[slave_id][reg]['type'] == 'register':
-                    print '%s(0x%04x)' % (sfp_module_reg[slave_id][reg]['description'], regdata[reg])
+                    print('%s(0x%04x)' % (sfp_module_reg[slave_id][reg]['description'], regdata[reg]))
                 else:
-                    print 'unknown/undocumented register?'
+                    print('unknown/undocumented register?')
             except:
-                print 'Exception: unknown/undocumented register?'
+                print('Exception: unknown/undocumented register?')
 
     def check_diagnostic_support(self, phy, channel):
         regdata = self.read_module_regs(slave_id = 0x50, slave_address = 92, num_bytes_to_read = 4)

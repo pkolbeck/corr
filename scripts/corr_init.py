@@ -29,11 +29,13 @@ Revisions:
                 New loopback_mux flush\n
                 Now grabs config settings from global corr.conf file \n
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging, katcp, struct,socket
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',lh.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',lh.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -85,241 +87,241 @@ if __name__ == '__main__':
 
 lh = corr.log_handlers.DebugLogHandler(100)
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False, log_handler = lh)
     c.connect()
-    print 'done'
+    print('done')
 
-    print '\n======================'
-    print 'Initial configuration:'
-    print '======================'
+    print('\n======================')
+    print('Initial configuration:')
+    print('======================')
 
     if prog_fpga:
-        print ''' Clearing the FPGAs...''',
+        print(''' Clearing the FPGAs...''', end=' ')
         sys.stdout.flush()
         c.deprog_all()
         time.sleep(opts.prog_timeout_s)
-        print 'done.'
+        print('done.')
 
         # PROGRAM THE DEVICES
-        print ''' Programming the F engines with %s and the X engines with %s...''' % (c.config['bitstream_f'], c.config['bitstream_x']),
+        print(''' Programming the F engines with %s and the X engines with %s...''' % (c.config['bitstream_f'], c.config['bitstream_x']), end=' ')
         sys.stdout.flush()
         c.prog_all()
-        print 'done.'
+        print('done.')
     else:
-        print ' Skipped programming FPGAs.'
+        print(' Skipped programming FPGAs.')
 
     # pause
     time.sleep(2)
 
     if c.tx_status_get():
-        print ' Stopping transmission of data...',
+        print(' Stopping transmission of data...', end=' ')
         c.tx_stop()
-        print 'done.'
+        print('done.')
 
     # Disable 10GbE cores until the network's been setup and ARP tables have settled. 
     # Need to do a reset here too to flush buffers in the core. But must be careful; resets are asynchronous and there must be no activity on the core (fifos) when they are reset.
     # DO NOT RESET THE 10GBE CORES SYNCHRONOUSLY... Packets will be routed strangely!
-    print('\n Pausing 10GbE data exchange...'),
+    print(('\n Pausing 10GbE data exchange...'), end=' ')
     sys.stdout.flush()
     if c.config['feng_out_type'] == '10gbe':
-        print "Pausing Fengs...",
+        print("Pausing Fengs...", end=' ')
         c.gbe_reset_hold_f()
-    print "Pausing Xengs...",
+    print("Pausing Xengs...", end=' ')
     c.gbe_reset_hold_x()
-    print 'done.'
+    print('done.')
 
-    print ' Syncing the F engines, this may take a few seconds...'
+    print(' Syncing the F engines, this may take a few seconds...')
     sys.stdout.flush()
     trig_time = c.arm()
-    print ' Armed. Expect trigg at %s local (%s UTC).' % (time.strftime('%H:%M:%S', time.localtime(trig_time)), time.strftime('%H:%M:%S', time.gmtime(trig_time))),
-    print 'SPEAD packet sent.'
+    print(' Armed. Expect trigg at %s local (%s UTC).' % (time.strftime('%H:%M:%S', time.localtime(trig_time)), time.strftime('%H:%M:%S', time.gmtime(trig_time))), end=' ')
+    print('SPEAD packet sent.')
 
-    print(''' Checking F engine clocks...'''),
+    print((''' Checking F engine clocks...'''), end=' ')
     sys.stdout.flush()
     if check_clocks:
-        if c.check_feng_clks(): print 'ok'
+        if c.check_feng_clks(): print('ok')
         else: 
             print ('FAILURES detected!')
             raise RuntimeError("System doesn't work with broken clocks!")
     else:
-        print 'skipped.'
+        print('skipped.')
 
-    print(''' Setting the board indices...'''),
+    print((''' Setting the board indices...'''), end=' ')
     sys.stdout.flush()
     c.feng_brd_id_set()
     if c.config['feng_out_type'] == '10gbe': c.xeng_brd_id_set()
     print ('''done''')
 
     if c.config['adc_type'] == 'katadc':
-        print(''' Setting the RF gain stages on the KATADC...'''),
+        print((''' Setting the RF gain stages on the KATADC...'''), end=' ')
         sys.stdout.flush()
         c.rf_gain_set_all()
         print ('''done''')
 
-    print(''' Setting the FFT shift schedule...'''),
+    print((''' Setting the FFT shift schedule...'''), end=' ')
     sys.stdout.flush()
     c.fft_shift_set_all()
     print ('''done''')
 
-    print ' Configuring EQ...',
+    print(' Configuring EQ...', end=' ')
     sys.stdout.flush()
     if opts.prog_eq:
         c.eq_set_all()
-        print 'done'
-    else: print 'skipped.'
+        print('done')
+    else: print('skipped.')
 
     # Configure the 10 GbE cores and load tgtap drivers
-    print(''' Configuring the 10GbE cores...'''),
+    print((''' Configuring the 10GbE cores...'''), end=' ')
     sys.stdout.flush()
     if opts.prog_10gbe_cores:
         c.config_roach_10gbe_ports()
-        print 'done'
+        print('done')
 
         #sleep_time=((ord(socket.inet_aton(c.config['10gbe_ip'])[-1]) + c.config['n_xeng']*c.config['n_xaui_ports_per_xfpga'])*0.1)
         sleep_time=(((c.config['10gbe_ip']&255) + c.config['n_xeng']*c.config['n_xaui_ports_per_xfpga'])*0.1)
-        print(''' Waiting %4.1f seconds for ARP to complete...'''%sleep_time),
+        print((''' Waiting %4.1f seconds for ARP to complete...'''%sleep_time), end=' ')
         sys.stdout.flush()
         c.syslogger.info("Waiting %4.1f seconds for ARP to complete."%sleep_time)
         time.sleep(sleep_time)
-        print '''done'''
+        print('''done''')
 
-    else: print 'skipped'
+    else: print('skipped')
 
     # Restart 10GbE data exchange (had to wait until the network's been setup and ARP tables have settled).
     # need to be careful about resets. these are asynchronous.
-    print(' Starting 10GbE data exchange...'),
+    print((' Starting 10GbE data exchange...'), end=' ')
     sys.stdout.flush()
     if c.config['feng_out_type'] == '10gbe':
         c.gbe_reset_release_f()
-        print 'F engines re-enabled.',
+        print('F engines re-enabled.', end=' ')
     c.gbe_reset_release_x()
-    print 'X engines re-enabled.'
+    print('X engines re-enabled.')
     
     if c.config['feng_out_type'] == 'xaui':
-        print(' Flushing loopback muxs...'),
+        print((' Flushing loopback muxs...'), end=' ')
         sys.stdout.flush()
         c.xeng_ctrl_set_all(loopback_mux_rst=True,gbe_enable=False)
         time.sleep(2)
         c.xeng_ctrl_set_all(loopback_mux_rst=False,gbe_enable=True)
-        print 'done.'
+        print('done.')
 
-    print '\n=================================='
-    print 'Verifying correct data exchange...'
-    print '=================================='
+    print('\n==================================')
+    print('Verifying correct data exchange...')
+    print('==================================')
 
     wait_time=len(c.xfpgas)/2
-    print(''' Wait %i seconds for system to stabilise...'''%wait_time),
+    print((''' Wait %i seconds for system to stabilise...'''%wait_time), end=' ')
     sys.stdout.flush()
     time.sleep(wait_time)
-    print '''done'''
+    print('''done''')
 
-    print(''' Resetting error counters...'''),
+    print((''' Resetting error counters...'''), end=' ')
     sys.stdout.flush()
     c.rst_status_and_count()
-    print '''done'''
+    print('''done''')
 
     time.sleep(1)
 
     if c.config['feng_out_type'] == 'xaui':
-        print(""" Checking that all XAUI links are working..."""),
+        print((""" Checking that all XAUI links are working..."""), end=' ')
         sys.stdout.flush()
-        if c.check_xaui_error(): print 'ok'
+        if c.check_xaui_error(): print('ok')
         else: 
             print ('FAILURES detected!')
             exit_fail()
 
-        print(""" Checking that the same timestamp F engine data is arriving at all X boards within a sync period..."""),
-        if c.check_xaui_sync(): print 'ok'
+        print((""" Checking that the same timestamp F engine data is arriving at all X boards within a sync period..."""), end=' ')
+        if c.check_xaui_sync(): print('ok')
         else: 
             print ('FAILURE! ')
-            print "Check your 1PPS, clock source, XAUI links, clock on this computer (should be NTP sync'd for reliable arming) and KATCP network links."
+            print("Check your 1PPS, clock source, XAUI links, clock on this computer (should be NTP sync'd for reliable arming) and KATCP network links.")
             exit_fail()
 
-    print(''' Checking that FPGAs are sending 10GbE packets...'''),
+    print((''' Checking that FPGAs are sending 10GbE packets...'''), end=' ')
     sys.stdout.flush()
-    if c.check_10gbe_tx(): print 'ok'
+    if c.check_10gbe_tx(): print('ok')
     else: 
         print ('FAILURES detected!')
         exit_fail()
 
-    print(''' Checking that all X engine FPGAs are receiving 10GbE packets...'''),
+    print((''' Checking that all X engine FPGAs are receiving 10GbE packets...'''), end=' ')
     sys.stdout.flush()
-    if c.check_10gbe_rx(): print 'ok'
+    if c.check_10gbe_rx(): print('ok')
     else: 
         print ('FAILURES detected!')
         exit_fail()
 
     if c.config['feng_out_type'] == 'xaui':
-        print(''' Waiting for loopback muxes to sync...'''),
+        print((''' Waiting for loopback muxes to sync...'''), end=' ')
         sys.stdout.flush()
         loopback_ok=c.check_loopback_mcnt()
         loop_retry_cnt=0
         while (not loopback_ok) and (loop_retry_cnt< opts.n_retries):
             time.sleep(1)
             loop_retry_cnt+=1
-            print '%i...'%loop_retry_cnt,
+            print('%i...'%loop_retry_cnt, end=' ')
             sys.stdout.flush()
             loopback_ok=c.check_loopback_mcnt()
-        if c.check_loopback_mcnt(): print 'ok'
+        if c.check_loopback_mcnt(): print('ok')
         else: 
             print ('FAILURES detected!')
             exit_fail()
 
-    print ''' Checking that all X engines are receiving all their packets...''',
+    print(''' Checking that all X engines are receiving all their packets...''', end=' ')
     sys.stdout.flush()
     c.rst_status_and_count()
     time.sleep(2)
-    if c.check_x_miss(): print 'ok'
+    if c.check_x_miss(): print('ok')
     else: raise RuntimeError('FAILURES detected!')
 
-    print (''' Setting the number of accumulations to %i (%5.3f seconds) and syncing VACCs...'''%(c.config['n_accs'], c.config['int_time'])),
+    print((''' Setting the number of accumulations to %i (%5.3f seconds) and syncing VACCs...'''%(c.config['n_accs'], c.config['int_time'])), end=' ')
     sys.stdout.flush()
     c.acc_time_set()
     c.rst_status_and_count()
-    print 'done'
+    print('done')
 
-    print(''' Checking vector accumulators...'''),
+    print((''' Checking vector accumulators...'''), end=' ')
     sys.stdout.flush()
     sleeptime = c.config['int_time'] + 0.1
-    print "Waiting for an integration to finish (%5.3fs)..." % sleeptime,
+    print("Waiting for an integration to finish (%5.3fs)..." % sleeptime, end=' ')
     sys.stdout.flush()
     time.sleep(sleeptime)
-    print('''done. Checking...'''),
+    print(('''done. Checking...'''), end=' ')
     sys.stdout.flush()
-    if c.check_vacc(): print 'ok'
+    if c.check_vacc(): print('ok')
     else: raise RuntimeError('FAILURES detected!')
     
-    print ' Sending SPEAD metatdata and data descriptors to %s:%i...'%(c.config['rx_meta_ip_str'],c.config['rx_udp_port']),
+    print(' Sending SPEAD metatdata and data descriptors to %s:%i...'%(c.config['rx_meta_ip_str'],c.config['rx_udp_port']), end=' ')
     sys.stdout.flush()
     if opts.spead:
         c.spead_issue_all()
-        print 'done'
-    else: print 'skipped.'
+        print('done')
+    else: print('skipped.')
 
-    print ' Configuring output to %s:%i...'%(c.config['rx_udp_ip_str'],c.config['rx_udp_port']),
+    print(' Configuring output to %s:%i...'%(c.config['rx_udp_ip_str'],c.config['rx_udp_port']), end=' ')
     sys.stdout.flush()
     if (c.config['out_type'] == '10gbe'): 
         c.config_udp_output()
-        print 'done'
-    else: print 'skipped.'
+        print('done')
+    else: print('skipped.')
 
     if opts.start_output: 
-        print ' Starting transmission of data...',
+        print(' Starting transmission of data...', end=' ')
         sys.stdout.flush()
         c.tx_start()
-        print 'done'
-    else: print 'skipped.'
+        print('done')
+    else: print('skipped.')
 
-    print(''' Resetting error counters...'''),
+    print((''' Resetting error counters...'''), end=' ')
     sys.stdout.flush()
     c.rst_status_and_count()
-    print '''done'''
+    print('''done''')
 
-    print(''' Enabling KITT...'''),
+    print((''' Enabling KITT...'''), end=' ')
     sys.stdout.flush()
     c.kitt_enable()
-    print '''done'''
+    print('''done''')
 
 except KeyboardInterrupt:
     exit_clean()

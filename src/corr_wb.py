@@ -5,6 +5,7 @@ Setup and unique functionality for the wide-band correlator modes. A wideband co
 Revisions:
 2011-07-07  PVP  Initial revision.
 """
+from __future__ import absolute_import
 import construct, corr_functions
 
 # f-engine control register

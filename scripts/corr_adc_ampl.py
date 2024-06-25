@@ -17,11 +17,14 @@ Revisions:
 1.10 JRM Requires F engine rev 302 or later and X engine rev 308 or later.\n
 
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, logging, curses
+from six.moves import range
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n', c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n', c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         #corr.scroll.screen_teardown()
         c.disconnect_all()
@@ -52,10 +55,10 @@ if __name__ == '__main__':
     verbose = opts.verbose
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.DEBUG if verbose else logging.INFO, connect = False)
     c.connect()
-    print 'done'
+    print('done')
 
     time.sleep(1)
     # set up the curses scroll screen
@@ -135,7 +138,7 @@ except KeyboardInterrupt:
 except:
     exit_fail()
 
-print 'Done with all'
+print('Done with all')
 exit_clean()
 
 # end

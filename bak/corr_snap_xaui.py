@@ -17,7 +17,10 @@ Revisions:
                 Fixed number of bits calculation
 
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, numpy, struct, sys, logging
+from six.moves import range
 
 #brams
 brams=['bram_msb','bram_lsb','bram_oob']
@@ -33,8 +36,8 @@ sync_bit = 1
 hdr_bit = 0
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -165,15 +168,15 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO,connect=False)
 
     if c.config['feng_out_type'] != 'xaui':
-        print 'Your system does not have any XAUI links!'
+        print('Your system does not have any XAUI links!')
         raise KeyboardInterrupt
 
     c.connect()
-    print 'done'
+    print('done')
 
     report=[]
 
@@ -185,27 +188,27 @@ try:
     adc_levels_acc_len = c.config['adc_levels_acc_len']
 
     if num_bits != 4:
-        print 'This script is only written to work with 4 bit quantised values.'
+        print('This script is only written to work with 4 bit quantised values.')
         raise KeyboardInterrupt
     
     x_with_connected_cables=c.config['n_ants']/c.config['n_ants_per_xaui']/c.config['n_xaui_ports_per_xfpga']
-    print 'You should have %i XAUI cables connected to each of the first %i X engines.'%(c.config['n_xaui_ports_per_xfpga'],x_with_connected_cables)
+    print('You should have %i XAUI cables connected to each of the first %i X engines.'%(c.config['n_xaui_ports_per_xfpga'],x_with_connected_cables))
 
-    print 'Grabbing data off snap blocks...',
+    print('Grabbing data off snap blocks...', end=' ')
     bram_dmp=c.xsnap_all(dev_name,brams,man_trig=man_trigger,wait_period=3,offset=opts.offset*num_bits*2*2/64*packet_len)
-    print 'done.'
+    print('done.')
 
-    print 'Unpacking bram out of band contents...',
+    print('Unpacking bram out of band contents...', end=' ')
     sys.stdout.flush()
     bram_oob=dict()
 
     for f in range(x_with_connected_cables):
         if len(bram_dmp[brams[2]][f])<=4:
-            print '\n   No data for X engine %s.'%c.xsrvs[f]
+            print('\n   No data for X engine %s.'%c.xsrvs[f])
             bram_oob[f]={}
         else:
             if opts.verbose:
-                print '\n   Got %i values from %s.'%(len(bram_dmp['bram_oob'][f])/4,c.xsrvs[f])
+                print('\n   Got %i values from %s.'%(len(bram_dmp['bram_oob'][f])/4,c.xsrvs[f]))
             bram_oob[f]={'raw':struct.unpack('>%iL'%(len(bram_dmp['bram_oob'][f])/4),bram_dmp['bram_oob'][f])}
             bram_oob[f].update({'linkdn':[bool(i&(2**linkdn_bit)) for i in bram_oob[f]['raw']]})
             bram_oob[f].update({'mrst':[bool(i&(2**mrst_bit)) for i in bram_oob[f]['raw']]})
@@ -213,30 +216,30 @@ try:
             bram_oob[f].update({'eof':[bool(i & (2**eof_bit)) for i in bram_oob[f]['raw']]})
             bram_oob[f].update({'sync':[bool(i&(2**sync_bit)) for i in bram_oob[f]['raw']]})
             bram_oob[f].update({'hdr':[bool(i & (2**hdr_bit)) for i in bram_oob[f]['raw']]})
-    print 'done.'
+    print('done.')
 
-    print 'Analysing packets...'
+    print('Analysing packets...')
 
     skip_indices=[]
     for f in range(x_with_connected_cables):
-        print c.xsrvs[f] + ': '
+        print(c.xsrvs[f] + ': ')
         report.append(dict())
         report[f]['pkt_total']=0
         pkt_hdr_idx = -1
         for i in range(0,len(bram_dmp[brams[2]][f])/4):
             if opts.verbose:
                 pkt_64bit = struct.unpack('>Q',bram_dmp['bram_msb'][f][(4*i):(4*i)+4]+bram_dmp['bram_lsb'][f][(4*i):(4*i)+4])[0]
-                print '[%s @ %4i]: %016X'%(c.xsrvs[f],i,pkt_64bit),
-                if bram_oob[f]['eof'][i]: print '[EOF]',
-                if bram_oob[f]['linkdn'][i]: print '[LINK DOWN]',
-                if bram_oob[f]['mrst'][i]: print '[MRST]',
-                if bram_oob[f]['adc'][i]: print '[ADC_UPDATE]',
-                if bram_oob[f]['sync'][i]: print '[SYNC]',
-                if bram_oob[f]['hdr'][i]: print '[HDR]',
-                print '' 
+                print('[%s @ %4i]: %016X'%(c.xsrvs[f],i,pkt_64bit), end=' ')
+                if bram_oob[f]['eof'][i]: print('[EOF]', end=' ')
+                if bram_oob[f]['linkdn'][i]: print('[LINK DOWN]', end=' ')
+                if bram_oob[f]['mrst'][i]: print('[MRST]', end=' ')
+                if bram_oob[f]['adc'][i]: print('[ADC_UPDATE]', end=' ')
+                if bram_oob[f]['sync'][i]: print('[SYNC]', end=' ')
+                if bram_oob[f]['hdr'][i]: print('[HDR]', end=' ')
+                print('') 
 
             if bram_oob[f]['linkdn'][i]:
-                print '[%s] LINK DOWN AT %i'%(c.xsrvs[f],i)
+                print('[%s] LINK DOWN AT %i'%(c.xsrvs[f],i))
 
             elif bram_oob[f]['hdr'][i]:
                 pkt_hdr_idx = i
@@ -245,7 +248,7 @@ try:
     #            print ('HEADER RECEIVED')
 
             elif bram_oob[f]['adc'][i]:
-                print "Got a legacy ADC amplitude update. This shouldn't happen in modern designs. I think you connected an old (or a faulty!) F engine."
+                print("Got a legacy ADC amplitude update. This shouldn't happen in modern designs. I think you connected an old (or a faulty!) F engine.")
                 skip_indices.append(i)
 
             elif bram_oob[f]['eof'][i]:
@@ -255,7 +258,7 @@ try:
                 pkt_len=i-pkt_hdr_idx+1
                 feng_unpkd_pkt=feng_unpack(f,pkt_hdr_idx,pkt_len,skip_indices)
 
-                print '[%s] [Pkt@ %4i Len: %2i]     (MCNT %16u ANT: %1i, Freq: %4i)  RMS: X: %1.2f Y: %1.2f.  {X: %1.2f+%1.2fj (%2.1f & %2.1f bits), Y:%1.2f+%1.2fj (%2.1f & %2.1f bits)} {Pk: X,Y: %1.2f,%1.2f (%2.1f,%2.1f bits)}'%(c.xsrvs[f],\
+                print('[%s] [Pkt@ %4i Len: %2i]     (MCNT %16u ANT: %1i, Freq: %4i)  RMS: X: %1.2f Y: %1.2f.  {X: %1.2f+%1.2fj (%2.1f & %2.1f bits), Y:%1.2f+%1.2fj (%2.1f & %2.1f bits)} {Pk: X,Y: %1.2f,%1.2f (%2.1f,%2.1f bits)}'%(c.xsrvs[f],\
                     pkt_hdr_idx,\
                     pkt_len-len(skip_indices),\
                     feng_unpkd_pkt['pkt_mcnt'],\
@@ -274,43 +277,43 @@ try:
                     feng_unpkd_pkt['pk_polQ'],\
                     feng_unpkd_pkt['pk_polI'],\
                     feng_unpkd_pkt['pk_bits_used_Q'],\
-                    feng_unpkd_pkt['pk_bits_used_I'])
-                if opts.verbose: print ''
+                    feng_unpkd_pkt['pk_bits_used_I']))
+                if opts.verbose: print('')
 
             #packet_len is length of data, not including header
                 if pkt_len-len(skip_indices) != (packet_len+1):
-                    print 'MALFORMED PACKET! of length %i starting at index %i'%(pkt_len-len(skip_indices),i)
-                    print 'len of skip_indices: %i:'%len(skip_indices),skip_indices
-                    if not report[f].has_key('Malformed packets'):
+                    print('MALFORMED PACKET! of length %i starting at index %i'%(pkt_len-len(skip_indices),i))
+                    print('len of skip_indices: %i:'%len(skip_indices),skip_indices)
+                    if 'Malformed packets' not in report[f]:
                         report[f]['Malformed packets'] = 1
                     else: 
                         report[f]['Malformed packets'] +=1
                         
-                if not report[f].has_key('pkt_ant_%i'%feng_unpkd_pkt['pkt_ant']):
+                if 'pkt_ant_%i'%feng_unpkd_pkt['pkt_ant'] not in report[f]:
                     report[f]['pkt_ant_%i'%feng_unpkd_pkt['pkt_ant']] = 1
                 else: 
                     report[f]['pkt_ant_%i'%feng_unpkd_pkt['pkt_ant']] +=1
                 report[f]['pkt_total'] += 1
 
-    print '=========================='
-    print '''Checking sync status... Note that this sync check only gaurantees that the F engines '''\
+    print('==========================')
+    print('''Checking sync status... Note that this sync check only gaurantees that the F engines '''\
             '''are sync'd to within one sync pulse and not that the system is '''\
-            '''actually in sync...'''
-    print c.check_xaui_sync()
-    print '=========================='
+            '''actually in sync...''')
+    print(c.check_xaui_sync())
+    print('==========================')
 
 
-    print '\n\nDone with all servers.\nSummary:\n==========================' 
+    print('\n\nDone with all servers.\nSummary:\n==========================') 
 
     for f in range(x_with_connected_cables):
-        keys = report[f].keys()
+        keys = list(report[f].keys())
         keys.sort()
-        print '------------------------'
-        print c.xsrvs[f] 
-        print '------------------------'
+        print('------------------------')
+        print(c.xsrvs[f]) 
+        print('------------------------')
         for key in sorted(keys):
-            print key,': ',report[f][key]
-    print '=========================='
+            print(key,': ',report[f][key])
+    print('==========================')
 
 except KeyboardInterrupt:
     exit_clean()

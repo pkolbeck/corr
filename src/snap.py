@@ -7,6 +7,7 @@ Revs:
 
 """
 
+from __future__ import absolute_import
 import corr, numpy, time, construct, logging
 
 def snapshots_arm(fpgas, dev_names, man_trig, man_valid, offset, circular_capture):

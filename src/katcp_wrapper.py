@@ -8,9 +8,13 @@
    @Revised 2009/12/01 to include print 10gbe core details.
    """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import struct, threading, socket, logging, time, os
 
 from katcp import *
+import six
+from six.moves import range
 log = logging.getLogger("katcp")
 
 class FpgaAsyncRequest:
@@ -32,7 +36,7 @@ class FpgaAsyncRequest:
     def got_reply(self, reply_message):
         if not (reply_message.name == self.request):
             error_string = 'rx reply(%s) does not match request(%s)' % (reply_message.name, self.request)
-            print error_string
+            print(error_string)
             raise RuntimeError(error_string)
         self.reply = reply_message
         self.reply_time = time.time()
@@ -43,7 +47,7 @@ class FpgaAsyncRequest:
             raise RuntimeError('Received inform for message(%s,%s) after reply. Invalid?' % (self.request, self.request_id))
         if not (inform_message.name == self.request):
             error_string = 'rx inform(%s) does not match request(%s)' % (inform_message.name, self.request)
-            print error_string
+            print(error_string)
             raise RuntimeError(error_string)
         self.informs.append(inform_message)
         self.inform_times.append(time.time())
@@ -111,8 +115,8 @@ class FpgaClient(CallbackClient):
             return None
 
     def _nb_pop_oldest_request(self):
-        req = self._nb_requests[self._nb_requests.keys()[0]]
-        for k, v in self._nb_requests.iteritems():
+        req = self._nb_requests[list(self._nb_requests.keys())[0]]
+        for k, v in six.iteritems(self._nb_requests):
             if v.time_tx < req.time_tx:
                 req = v
         self._nb_requests_lock.acquire()
@@ -125,7 +129,7 @@ class FpgaClient(CallbackClient):
         return req.reply, req.informs
 
     def _nb_add_request(self, request_name, request_id, inform_cb, reply_cb):
-        if self._nb_requests.has_key(request_id):
+        if request_id in self._nb_requests:
             raise RuntimeError('Trying to add request with id(%s) but it already exists.' % request_id)
         self._nb_requests_lock.acquire()
         self._nb_requests[request_id] = FpgaAsyncRequest(self.host, request_name, request_id, inform_cb, reply_cb)
@@ -142,7 +146,7 @@ class FpgaClient(CallbackClient):
         """The callback for request replies. Check that the ID exists and call that request's got_reply function.
            """
         request_id = ''.join(userdata)
-        if not self._nb_requests.has_key(request_id):
+        if request_id not in self._nb_requests:
             raise RuntimeError('Recieved reply for request_id(%s), but no such stored request.' % request_id)
         self._nb_requests[request_id].got_reply(msg.copy())
 
@@ -150,7 +154,7 @@ class FpgaClient(CallbackClient):
         """The callback for request informs. Check that the ID exists and call that request's got_inform function.
            """
         request_id = ''.join(userdata)
-        if not self._nb_requests.has_key(request_id):
+        if request_id not in self._nb_requests:
             raise RuntimeError('Recieved inform for request_id(%s), but no such stored request.' % request_id)
         self._nb_requests[request_id].got_inform(msg.copy())
 
@@ -165,7 +169,7 @@ class FpgaClient(CallbackClient):
         if len(self._nb_requests) == self._nb_max_requests:
             oldreq = self._nb_pop_oldest_request()
             self._logger.info("Request list full, removing oldest one(%s,%s)." % (oldreq.request, oldreq.request_id))
-            print "Request list full, removing oldest one(%s,%s)." % (oldreq.request, oldreq.request_id)
+            print("Request list full, removing oldest one(%s,%s)." % (oldreq.request, oldreq.request_id))
         request_id = self._nb_get_next_request_id()
         self._nb_add_request(request, request_id, inform_cb, reply_cb)
         self.callback_request(msg = Message.request(request, *args), reply_cb = self._nb_replycb, inform_cb = self._nb_informcb, user_data = request_id)
@@ -408,7 +412,7 @@ class FpgaClient(CallbackClient):
             os.path.getsize(bof_file)
         except:
             raise IOError('BOF file not found.')
-        import time, Queue
+        import time, six.moves.queue
         def makerequest(result_queue):
             try:
                 result = self._request('upload', timeout, port)
@@ -437,10 +441,10 @@ class FpgaClient(CallbackClient):
                 result_queue.put('Could not send file to upload port.')
             result_queue.put('OK')
         # request thread
-        request_queue = Queue.Queue()
+        request_queue = six.moves.queue.Queue()
         request_thread = threading.Thread(target = makerequest, args = (request_queue,))
         # upload thread
-        upload_queue = Queue.Queue()
+        upload_queue = six.moves.queue.Queue()
         upload_thread = threading.Thread(target = uploadbof, args = (bof_file, upload_queue,))
         # start the threads and join
         old_timeout = self._timeout
@@ -541,14 +545,14 @@ class FpgaClient(CallbackClient):
 
         dram_indirect_page_size=(64*1024*1024)
         #read_chunk_size=(1024*1024)
-        if verbose: print 'Reading a total of %8i bytes from offset %8i...'%(size,offset)
+        if verbose: print('Reading a total of %8i bytes from offset %8i...'%(size,offset))
 
         while n_reads < size:
             dram_page=(offset+n_reads)/dram_indirect_page_size
             local_offset = (offset+n_reads)%(dram_indirect_page_size)
             #local_reads = min(read_chunk_size,size-n_reads,dram_indirect_page_size-(offset%dram_indirect_page_size))
             local_reads = min(size-n_reads,dram_indirect_page_size-(offset%dram_indirect_page_size))
-            if verbose: print 'Reading %8i bytes from indirect address %4i at local offset %8i...'%(local_reads,dram_page,local_offset)
+            if verbose: print('Reading %8i bytes from indirect address %4i at local offset %8i...'%(local_reads,dram_page,local_offset))
             if last_dram_page != dram_page:
                 self.write_int('dram_controller',dram_page)
                 last_dram_page = dram_page
@@ -574,13 +578,13 @@ class FpgaClient(CallbackClient):
 
         dram_indirect_page_size=(64*1024*1024)
         write_chunk_size=(1024*512)
-        if verbose: print 'writing a total of %8i bytes from offset %8i...'%(size,offset)
+        if verbose: print('writing a total of %8i bytes from offset %8i...'%(size,offset))
 
         while n_writes < size:
             dram_page=(offset+n_writes)/dram_indirect_page_size
             local_offset = (offset+n_writes)%(dram_indirect_page_size)
             local_writes = min(write_chunk_size,size-n_writes,dram_indirect_page_size-(offset%dram_indirect_page_size))
-            if verbose: print 'Writing %8i bytes from indirect address %4i at local offset %8i...'%(local_writes,dram_page,local_offset)
+            if verbose: print('Writing %8i bytes from indirect address %4i at local offset %8i...'%(local_writes,dram_page,local_offset))
             if last_dram_page != dram_page:
                 self.write_int('dram_controller',dram_page)
                 last_dram_page = dram_page
@@ -718,7 +722,7 @@ class FpgaClient(CallbackClient):
         #ip_prefix = '%3d.%3d.%3d.'%(port_dump[0x10],port_dump[0x11],port_dump[0x12])
 
         rv={}
-        mymac=((port_dump[02]<<40) + (port_dump[03]<<32) + (port_dump[04]<<24) + (port_dump[05]<<16) + (port_dump[06]<<8) + port_dump[07])
+        mymac=((port_dump[0o2]<<40) + (port_dump[0o3]<<32) + (port_dump[0o4]<<24) + (port_dump[0o5]<<16) + (port_dump[0o6]<<8) + port_dump[0o7])
         rv['mymac']=mymac
 
         gateway=((port_dump[0x0c]<<24) + (port_dump[0x0d]<<16) + (port_dump[0x0e]<<8) + (port_dump[0x0f]))
@@ -783,75 +787,75 @@ class FpgaClient(CallbackClient):
         port_dump=list(struct.unpack('>16384B',self.read(dev_name,16384)))
         ip_prefix= '%3d.%3d.%3d.'%(port_dump[0x10],port_dump[0x11],port_dump[0x12])
 
-        print '------------------------'
-        print 'GBE0 Configuration...'
-        print 'My MAC: ',
-        for m in port_dump[02:02+6]:
-            print '%02X'%m,
-        print ''
+        print('------------------------')
+        print('GBE0 Configuration...')
+        print('My MAC: ', end=' ')
+        for m in port_dump[0o2:0o2+6]:
+            print('%02X'%m, end=' ')
+        print('')
 
-        print 'Gateway: ',
+        print('Gateway: ', end=' ')
         for g in port_dump[0x0c:0x0c+4]:
-            print '%3d'%g,
-        print ''
+            print('%3d'%g, end=' ')
+        print('')
 
-        print 'This IP: ',
+        print('This IP: ', end=' ')
         for i in port_dump[0x10:0x10+4]:
-            print '%3d'%i,
-        print ''
+            print('%3d'%i, end=' ')
+        print('')
 
-        print 'Subnet Mask: ',
+        print('Subnet Mask: ', end=' ')
         for i in port_dump[0x38:0x38+4]:
-            print '%3d'%i,
-        print ''
+            print('%3d'%i, end=' ')
+        print('')
 
-        print 'Gateware Port: ',
-        print '%5d'%(port_dump[0x22]*(2**8)+port_dump[0x23])
+        print('Gateware Port: ', end=' ')
+        print('%5d'%(port_dump[0x22]*(2**8)+port_dump[0x23]))
 
-        print 'Fabric interface is currently: ',
-        if port_dump[0x21]&1: print 'Enabled'
-        else: print 'Disabled'
+        print('Fabric interface is currently: ', end=' ')
+        if port_dump[0x21]&1: print('Enabled')
+        else: print('Disabled')
 
 
-        print 'XAUI Status: ',
-        print '%02X%02X%02X%02X'%(port_dump[0x24],port_dump[0x25],port_dump[0x26],port_dump[0x27])
-        print '\t lane sync 0: %i'%bool(port_dump[0x27]&4)
-        print '\t lane sync 1: %i'%bool(port_dump[0x27]&8)
-        print '\t lane sync 2: %i'%bool(port_dump[0x27]&16)
-        print '\t lane sync 3: %i'%bool(port_dump[0x27]&32)
-        print '\t Channel bond: %i'%bool(port_dump[0x27]&64)
+        print('XAUI Status: ', end=' ')
+        print('%02X%02X%02X%02X'%(port_dump[0x24],port_dump[0x25],port_dump[0x26],port_dump[0x27]))
+        print('\t lane sync 0: %i'%bool(port_dump[0x27]&4))
+        print('\t lane sync 1: %i'%bool(port_dump[0x27]&8))
+        print('\t lane sync 2: %i'%bool(port_dump[0x27]&16))
+        print('\t lane sync 3: %i'%bool(port_dump[0x27]&32))
+        print('\t Channel bond: %i'%bool(port_dump[0x27]&64))
 
-        print 'XAUI PHY config: '
-        print '\tRX_eq_mix: %2X'%port_dump[0x28]
-        print '\tRX_eq_pol: %2X'%port_dump[0x29]
-        print '\tTX_pre-emph: %2X'%port_dump[0x2a]
-        print '\tTX_diff_ctrl: %2X'%port_dump[0x2b]
+        print('XAUI PHY config: ')
+        print('\tRX_eq_mix: %2X'%port_dump[0x28])
+        print('\tRX_eq_pol: %2X'%port_dump[0x29])
+        print('\tTX_pre-emph: %2X'%port_dump[0x2a])
+        print('\tTX_diff_ctrl: %2X'%port_dump[0x2b])
 
         if arp:
-            print 'ARP Table: '
+            print('ARP Table: ')
             for i in range(256):
-                print 'IP: %s%3d: MAC:'%(ip_prefix,i),
+                print('IP: %s%3d: MAC:'%(ip_prefix,i), end=' ')
                 for m in port_dump[0x3000+i*8+2:0x3000+i*8+8]:
-                    print '%02X'%m,
-                print ''
+                    print('%02X'%m, end=' ')
+                print('')
 
         if cpu:
-            print 'CPU TX Interface (at offset 4096bytes):'
-            print 'Byte offset:  Contents (Hex)'
+            print('CPU TX Interface (at offset 4096bytes):')
+            print('Byte offset:  Contents (Hex)')
             for i in range(4096/8):
-                print '%04i:        '%(i*8),
-                for l in range(8): print '%02x'%port_dump[4096+8*i+l],
-                print ''
-            print '------------------------'
+                print('%04i:        '%(i*8), end=' ')
+                for l in range(8): print('%02x'%port_dump[4096+8*i+l], end=' ')
+                print('')
+            print('------------------------')
 
-            print 'CPU RX Interface (at offset 8192bytes):'
-            print 'CPU packet RX buffer unacknowledged data: %i'%port_dump[6*4+3]
-            print 'Byte offset:  Contents (Hex)'
+            print('CPU RX Interface (at offset 8192bytes):')
+            print('CPU packet RX buffer unacknowledged data: %i'%port_dump[6*4+3])
+            print('Byte offset:  Contents (Hex)')
             for i in range(port_dump[6*4+3]+8):
-                print '%04i:        '%(i*8),
-                for l in range(8): print '%02x'%port_dump[8192+8*i+l],
-                print ''
-        print '------------------------'
+                print('%04i:        '%(i*8), end=' ')
+                for l in range(8): print('%02x'%port_dump[8192+8*i+l], end=' ')
+                print('')
+        print('------------------------')
 
     def est_brd_clk(self):
         """Returns the approximate clock rate of the FPGA in MHz."""

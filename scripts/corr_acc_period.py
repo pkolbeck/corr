@@ -3,11 +3,13 @@
 Revs:
 2010-11-13: JRM Pause output before changing acc time.
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, time, sys, numpy, os, logging
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',c.log_handler.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -44,10 +46,10 @@ if __name__ == '__main__':
     verbose=opts.verbose
 
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c=corr.corr_functions.Correlator(config_file=config_file,log_level=logging.DEBUG if verbose else logging.INFO,connect=False)
     c.connect()
-    print 'done'
+    print('done')
 
 
     if opts.acc_time>0:
@@ -55,21 +57,21 @@ try:
     else:
         acc_time=c.config['int_time']
 
-    print ('''Pausing output...'''),
+    print(('''Pausing output...'''), end=' ')
     c.tx_stop()
-    print 'done.'
+    print('done.')
 
-    print (''' Setting the accumulation period to %2.2f seconds...'''%(acc_time)),
+    print((''' Setting the accumulation period to %2.2f seconds...'''%(acc_time)), end=' ')
     sys.stdout.flush()
     c.acc_time_set(acc_time)
-    print 'done, wrote %i into acc_len (%5.3fs).'%(c.acc_n_get(),c.acc_time_get())
+    print('done, wrote %i into acc_len (%5.3fs).'%(c.acc_n_get(),c.acc_time_get()))
 
 
-    print ('''Restarting output...'''),
+    print(('''Restarting output...'''), end=' ')
     if opts.no_restart == False: 
         c.tx_start()
-        print 'done.'
-    else: print 'skipped.'
+        print('done.')
+    else: print('skipped.')
 
 except KeyboardInterrupt:
     exit_clean()

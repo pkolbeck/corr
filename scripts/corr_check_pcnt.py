@@ -3,11 +3,13 @@
 Check that the pcnt in the f-engines is incrementing correctly.
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import corr, sys, logging, time
 
 def exit_fail():
-    print 'FAILURE DETECTED. Log entries:\n',lh.printMessages()
-    print "Unexpected error:", sys.exc_info()
+    print('FAILURE DETECTED. Log entries:\n',lh.printMessages())
+    print("Unexpected error:", sys.exc_info())
     try:
         c.disconnect_all()
     except: pass
@@ -33,10 +35,10 @@ if __name__ == '__main__':
 
 lh = corr.log_handlers.DebugLogHandler(100)
 try:
-    print 'Connecting...',
+    print('Connecting...', end=' ')
     c = corr.corr_functions.Correlator(config_file = config_file, log_level = logging.INFO, connect = False, log_handler = lh)
     c.connect()
-    print 'done'
+    print('done')
 
     slist = [64, 32, 16, 8, 4, 2, 1, 0.5, 0.25, 0.125]
     wait_time = 1
@@ -45,26 +47,26 @@ try:
     for s in slist:
         c.config['pcnt_scale_factor'] = c.config['bandwidth'] / c.config['xeng_acc_len'] * s
 
-        print "s(%f) pcnt_scale(%f) bw(%f) xeng_acc_len(%f)" % (s, c.config['pcnt_scale_factor'], c.config['bandwidth'], c.config['xeng_acc_len'])
+        print("s(%f) pcnt_scale(%f) bw(%f) xeng_acc_len(%f)" % (s, c.config['pcnt_scale_factor'], c.config['bandwidth'], c.config['xeng_acc_len']))
 
-        print "Getting current system PCNT...",
+        print("Getting current system PCNT...", end=' ')
         pcnta = c.pcnt_current_get()
-        print pcnta, "."
+        print(pcnta, ".")
 
-        print "Waiting %i seconds..." % wait_time,
+        print("Waiting %i seconds..." % wait_time, end=' ')
         sys.stdout.flush()
         time.sleep(wait_time)
-        print "done."
+        print("done.")
 
-        print "Getting current system PCNT...",
+        print("Getting current system PCNT...", end=' ')
         pcntb = c.pcnt_current_get()
-        print pcntb, "."
+        print(pcntb, ".")
         
-        print "PCNT:         before(%i)\t\tafter_%is(%i)\t\tdiff(%i)" % (pcnta, wait_time, pcntb, pcntb - pcnta)
+        print("PCNT:         before(%i)\t\tafter_%is(%i)\t\tdiff(%i)" % (pcnta, wait_time, pcntb, pcntb - pcnta))
         timea = c.time_from_pcnt(pcnta)
         timeb = c.time_from_pcnt(pcntb)
         timediff = timeb - timea
-        print "PCNT to time: before(%.5fs)\tafter_%is(%.5fs)\tdiff(%.5fs)\terror(%.10fms)" % (timea, wait_time, timeb, timediff, (timediff - wait_time) * 1000.)
+        print("PCNT to time: before(%.5fs)\tafter_%is(%.5fs)\tdiff(%.5fs)\terror(%.10fms)" % (timea, wait_time, timeb, timediff, (timediff - wait_time) * 1000.))
 
 except KeyboardInterrupt:
     exit_clean()

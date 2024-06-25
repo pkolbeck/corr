@@ -1,4 +1,7 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import iniparse, exceptions, socket, struct, numpy, os, logging, corr
+from six.moves import range
 """
 Library for parsing CASPER correlator configuration files
 
@@ -166,12 +169,12 @@ class CorrConf:
         if len(self.cp.katcp.servers_f.strip()) > 0:
           self.config['servers_f'] = self.cp.katcp.servers_f.strip().split(LISTDELIMIT)
         else:
-          print "Warning, no F-engine servers found in config file."
+          print("Warning, no F-engine servers found in config file.")
           self.config['servers_f'] = []
         if len(self.cp.katcp.servers_x.strip()) > 0:
           self.config['servers_x'] = self.cp.katcp.servers_x.strip().split(LISTDELIMIT)
         else:
-          print "Warning, no X-engine servers found in config file."
+          print("Warning, no X-engine servers found in config file.")
           self.config['servers_x'] = []
         self.config['bitstream_f'] = self.cp.katcp.bitstream_f
         self.config['bitstream_x'] = self.cp.katcp.bitstream_x
@@ -386,12 +389,12 @@ class CorrConf:
             return
     
     def write(self,section,variable,value):
-        print 'Writing to the config file. Mostly, this is a bad idea. Mostly. Doing nothing.'
+        print('Writing to the config file. Mostly, this is a bad idea. Mostly. Doing nothing.')
         return
         self.config[variable] = value
         self.cp[section][variable] = str(value)
         fpw=open(self.config_file, 'w')
-        print >>fpw,self.cp
+        print(self.cp, file=fpw)
         fpw.close()
 
     def write_var(self, filename, value):
