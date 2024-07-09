@@ -52,7 +52,7 @@ register_fengine_coarse_control = construct.BitStruct('coarse_ctrl',
 
 # f-engine fine control
 register_fengine_fine_control = construct.BitStruct('fine_ctrl',
-    construct.Padding(32 - 26),             	# 26-31
+    construct.Padding(32 - 26),                 # 26-31
     construct.BitField('fft_shift', 26))        # 0-25  Fine FFT shift schedule - not currently used.
 
 # f-engine control

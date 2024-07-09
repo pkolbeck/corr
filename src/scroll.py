@@ -59,7 +59,7 @@ class Scroll(object):
         if key > 0:
             try:
                 if chr(key) ==  'q':
-                    raise KeyboardInterrupt		# q for quit
+                    raise KeyboardInterrupt             # q for quit
                 elif chr(key) ==  'u':
                     self.offset_y -=  curses.LINES
                 elif chr(key) ==  'd':
