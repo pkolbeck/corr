@@ -54,7 +54,7 @@ Revisions:
 from __future__ import absolute_import
 from __future__ import print_function
 import corr, time, sys, numpy, logging, struct, construct, socket, os
-import spead64_48 as spead
+import spead2 as spead
 import six
 from six.moves import range
 

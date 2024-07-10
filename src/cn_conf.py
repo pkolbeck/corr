@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
-import iniparse, exceptions, socket, struct, numpy, os, logging, corr
+import iniparse, socket, struct, numpy, os, logging, corr
 from six.moves import range
 """
 Library for parsing CASPER correlator configuration files
