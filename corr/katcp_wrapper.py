@@ -8,13 +8,9 @@
    @Revised 2009/12/01 to include print 10gbe core details.
    """
 
-from __future__ import absolute_import
-from __future__ import print_function
 import struct, threading, socket, logging, time, os
 
 from katcp import *
-import six
-from six.moves import range
 log = logging.getLogger("katcp")
 
 class FpgaAsyncRequest:
@@ -87,7 +83,7 @@ class FpgaClient(CallbackClient):
         super(FpgaClient, self).__init__(host, port, tb_limit = tb_limit, timeout = timeout, logger = logger)
         self.host = host
         self._timeout = timeout
-        self.start(daemon = True)
+        self.start(True)
 
         # async stuff
         self._nb_request_id_lock = threading.Lock()
@@ -116,7 +112,7 @@ class FpgaClient(CallbackClient):
 
     def _nb_pop_oldest_request(self):
         req = self._nb_requests[list(self._nb_requests.keys())[0]]
-        for k, v in six.iteritems(self._nb_requests):
+        for k, v in self._nb_requests.items():
             if v.time_tx < req.time_tx:
                 req = v
         self._nb_requests_lock.acquire()
@@ -412,7 +408,7 @@ class FpgaClient(CallbackClient):
             os.path.getsize(bof_file)
         except:
             raise IOError('BOF file not found.')
-        import time, six.moves.queue
+        import time, queue
         def makerequest(result_queue):
             try:
                 result = self._request('upload', timeout, port)
@@ -441,10 +437,10 @@ class FpgaClient(CallbackClient):
                 result_queue.put('Could not send file to upload port.')
             result_queue.put('OK')
         # request thread
-        request_queue = six.moves.queue.Queue()
+        request_queue = queue.Queue()
         request_thread = threading.Thread(target = makerequest, args = (request_queue,))
         # upload thread
-        upload_queue = six.moves.queue.Queue()
+        upload_queue = queue.Queue()
         upload_thread = threading.Thread(target = uploadbof, args = (bof_file, upload_queue,))
         # start the threads and join
         old_timeout = self._timeout
@@ -485,7 +481,7 @@ class FpgaClient(CallbackClient):
            @return  boolean: ping result.
            """
         reply, informs = self._request("watchdog", self._timeout)
-        if reply.arguments[0]=='ok': return True
+        if reply.arguments[0].decode()=='ok': return True
         else: return False
 
     def execcmd(self, string):
@@ -626,7 +622,7 @@ class FpgaClient(CallbackClient):
            @param data  Byte string: data to write.
            @param offset  Integer: offset to write data to (in bytes)
            """
-        assert (type(data)==str) , 'You need to supply binary packed string data!'
+        assert (type(data)==bytes) , 'You need to supply binary packed string data!'
         assert (len(data)%4) ==0 , 'You must write 32bit-bounded words!'
         assert ((offset%4) ==0) , 'You must write 32bit-bounded words!'
         self._request("write", self._timeout, device_name, str(offset), data)
