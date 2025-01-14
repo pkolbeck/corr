@@ -87,7 +87,7 @@ class FpgaClient(CallbackClient):
         super(FpgaClient, self).__init__(host, port, tb_limit = tb_limit, timeout = timeout, logger = logger)
         self.host = host
         self._timeout = timeout
-        self.start(daemon = True)
+        self.start(timeout = timeout)
 
         # async stuff
         self._nb_request_id_lock = threading.Lock()
@@ -626,7 +626,7 @@ class FpgaClient(CallbackClient):
            @param data  Byte string: data to write.
            @param offset  Integer: offset to write data to (in bytes)
            """
-        assert (type(data)==str) , 'You need to supply binary packed string data!'
+        assert (type(data)==bytes) , 'You need to supply binary packed string data!'
         assert (len(data)%4) ==0 , 'You must write 32bit-bounded words!'
         assert ((offset%4) ==0) , 'You must write 32bit-bounded words!'
         self._request("write", self._timeout, device_name, str(offset), data)
